@@ -15,6 +15,7 @@ struct Osecpu
 	long codelen;
 
 	int invalid_instruction_error;
+	int invalid_argument_error;
 };
 
 int load_b32(struct Osecpu* osecpu, const char* filename)
@@ -141,9 +142,9 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 				const int imm = fetch_code(osecpu);
 				const int r = fetch_code(osecpu)-0x76000000;
 				const int bit = fetch_code(osecpu)-0x76000000;
-				if (resv != 0xfffff788) return -1;
-				if (r < 0 || r > 0x3f) return -1;
-				if (bit != 0x20) return -1;
+				if (resv != 0xfffff788) goto invalid_argument_error;
+				if (r < 0 || r > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
 				osecpu->registers[r] = imm;
 			}
 			break;
@@ -152,8 +153,8 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 				const int resv = fetch_code(osecpu);
 				const int imm = fetch_code(osecpu);
 				const int dr = fetch_code(osecpu)-0x76000000;
-				if (resv != 0xfffff788) return -1;
-				if (dr < 0 || dr > 4) return -1;
+				if (resv != 0xfffff788) goto invalid_argument_error;
+				if (dr < 0 || dr > 4) goto invalid_argument_error;
 				osecpu->dregisters[dr] = imm;
 			}
 			break;
@@ -162,6 +163,10 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 			break;
 	}
 	return 0;
+
+invalid_argument_error:
+	osecpu->invalid_argument_error = 1;
+	return -1;
 }
 
 int run_b32(struct Osecpu* osecpu)
@@ -172,6 +177,7 @@ int run_b32(struct Osecpu* osecpu)
 		if (osecpu->codelen <= osecpu->pregisters[0x3f]) break;
 		do_instruction(osecpu, icode);
 		if(osecpu->invalid_instruction_error) return -1;
+		if(osecpu->invalid_argument_error) return -1;
 	}
 	return 0;
 }
@@ -203,6 +209,8 @@ int main(int argc, char** argv)
 	run_b32(osecpu);
 	if (osecpu->invalid_instruction_error) {
 		fprintf(stderr, "Error: invalid instruction error (%08X)\n", osecpu->invalid_instruction_error);
+	} else if (osecpu->invalid_argument_error) {
+		fprintf(stderr, "Error: invalid argument error\n");
 	}
 
 	coredump(osecpu);
