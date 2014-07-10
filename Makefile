@@ -16,5 +16,5 @@ clean:
 	$(RM) $(TARGET)
 
 $(TARGET): $(SOURCE)
-	$(CC) -o $(TARGET) $(CFLAGS) main.c
+	$(CC) -o $(TARGET) $(CFLAGS) $(SOURCE)
 
