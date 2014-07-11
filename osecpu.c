@@ -174,7 +174,7 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 				const int r1 = fetch_code(osecpu)-0x76000000;
 				const int r2 = fetch_code(osecpu)-0x76000000;
 				const int r0 = fetch_code(osecpu)-0x76000000;
-				const int bit = fetch_code(osecpu);
+				const int bit = fetch_code(osecpu)-0x76000000;
 				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
 				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
 				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
@@ -187,7 +187,7 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 				const int r1 = fetch_code(osecpu)-0x76000000;
 				const int r2 = fetch_code(osecpu)-0x76000000;
 				const int r0 = fetch_code(osecpu)-0x76000000;
-				const int bit = fetch_code(osecpu);
+				const int bit = fetch_code(osecpu)-0x76000000;
 				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
 				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
 				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
@@ -200,7 +200,7 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 				const int r1 = fetch_code(osecpu)-0x76000000;
 				const int r2 = fetch_code(osecpu)-0x76000000;
 				const int r0 = fetch_code(osecpu)-0x76000000;
-				const int bit = fetch_code(osecpu);
+				const int bit = fetch_code(osecpu)-0x76000000;
 				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
 				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
 				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
