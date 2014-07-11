@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=
 MAKE=make --no-print-directory
 TARGET=osecpu
-SOURCE=main.c
+SOURCE=osecpu.c
 RM=rm -f
 
 .PHONY: default all clean
