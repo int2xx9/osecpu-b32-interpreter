@@ -202,7 +202,7 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 			break;
 		default:
 			osecpu->invalid_instruction_error = icode;
-			break;
+			return -1;
 	}
 	return 0;
 
@@ -217,9 +217,7 @@ int run_b32(struct Osecpu* osecpu)
 	while (1) {
 		icode = fetch_code(osecpu);
 		if (osecpu->codelen <= osecpu->pregisters[0x3f]) break;
-		do_instruction(osecpu, icode);
-		if(osecpu->invalid_instruction_error) return -1;
-		if(osecpu->invalid_argument_error) return -1;
+		if (do_instruction(osecpu, icode) == -1) return -1;
 	}
 	return 0;
 }
