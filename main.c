@@ -8,7 +8,7 @@ int main(int argc, char** argv)
 	struct Osecpu* osecpu;
 
 	if (argc < 2) {
-		printf("Usage: %s app.ose\n", argv[0]);
+		printf("Usage: %s app.b32\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
