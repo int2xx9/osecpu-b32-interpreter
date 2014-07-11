@@ -73,16 +73,21 @@ int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 		return -1;
 	}
 
-	osecpu->code = (uint8_t*)malloc(len);
-	if (!osecpu->code) {
-		free(code);
-		return -1;
-	}
-
-	osecpu->codelen = len-8;
-	memcpy(osecpu->code, code+8, osecpu->codelen);
+	if (load_b32_from_memory(osecpu, code+8, len-8) != 0) return -1;
 
 	free(code);
+	return 0;
+}
+
+int load_b32_from_memory(struct Osecpu* osecpu, const uint8_t* code, long len)
+{
+	if (osecpu->code) return -1;
+
+	osecpu->code = (uint8_t*)malloc(len);
+	if (!osecpu->code) return -1;
+	osecpu->codelen = len;
+	memcpy(osecpu->code, code, len);
+
 	return 0;
 }
 
