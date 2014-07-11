@@ -10,7 +10,7 @@ default:
 	@$(MAKE) all
 
 all:
-	@$(MAKE) osecpu
+	@$(MAKE) $(TARGET)
 
 clean:
 	$(RM) $(TARGET)
