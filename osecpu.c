@@ -1,3 +1,4 @@
+#include "osecpu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,20 +17,7 @@
 #define INSTRUCTION_MOD  0x7600001b
 #define INSTRUCTION_LIDR 0x760000fd
 
-struct Osecpu
-{
-	int registers[0x40];
-	int pregisters[0x40];
-	int dregisters[4];
-	uint8_t* code;
-	long codelen;
-
-	int invalid_instruction_error;
-	int invalid_argument_error;
-	int division_by_zero_error;
-};
-
-int load_b32(struct Osecpu* osecpu, const char* filename)
+int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 {
 	FILE* fp;
 	long len;
@@ -324,47 +312,6 @@ int run_b32(struct Osecpu* osecpu)
 		if (osecpu->codelen <= osecpu->pregisters[0x3f]) break;
 		if (do_instruction(osecpu, icode) == -1) return -1;
 	}
-	return 0;
-}
-
-
-int main(int argc, char** argv)
-{
-	struct Osecpu* osecpu;
-
-	if (argc < 2) {
-		printf("Usage: %s app.ose\n", argv[0]);
-		exit(EXIT_FAILURE);
-	}
-
-	osecpu = (struct Osecpu*)malloc(sizeof(struct Osecpu));
-	if (!osecpu) {
-		printf("malloc() failed\n");
-		exit(EXIT_FAILURE);
-	}
-	memset(osecpu, 0, sizeof(struct Osecpu));
-
-	if (load_b32(osecpu, argv[1]) == -1) {
-		printf("load_b32() error\n");
-		if (osecpu->code) free(osecpu->code);
-		free(osecpu);
-		exit(EXIT_FAILURE);
-	}
-
-	run_b32(osecpu);
-	if (osecpu->invalid_instruction_error) {
-		fprintf(stderr, "Error: invalid instruction error (%08X)\n", osecpu->invalid_instruction_error);
-	} else if (osecpu->invalid_argument_error) {
-		fprintf(stderr, "Error: invalid argument error\n");
-	} else if (osecpu->invalid_argument_error) {
-		fprintf(stderr, "Error: division by zero error\n");
-	}
-
-	coredump(osecpu);
-
-	if (osecpu->code) free(osecpu->code);
-	free(osecpu);
-
 	return 0;
 }
 
