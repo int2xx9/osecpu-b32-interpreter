@@ -7,6 +7,13 @@
 #define INSTRUCTION_OR   0x76000010
 #define INSTRUCTION_XOR  0x76000011
 #define INSTRUCTION_AND  0x76000012
+#define INSTRUCTION_ADD  0x76000014
+#define INSTRUCTION_SUB  0x76000015
+#define INSTRUCTION_MUL  0x76000016
+#define INSTRUCTION_SHL  0x76000018
+#define INSTRUCTION_SAR  0x76000019
+#define INSTRUCTION_DIV  0x7600001a
+#define INSTRUCTION_MOD  0x7600001b
 #define INSTRUCTION_LIDR 0x760000fd
 
 struct Osecpu
@@ -19,6 +26,7 @@ struct Osecpu
 
 	int invalid_instruction_error;
 	int invalid_argument_error;
+	int division_by_zero_error;
 };
 
 int load_b32(struct Osecpu* osecpu, const char* filename)
@@ -200,6 +208,99 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 				osecpu->registers[r0] = osecpu->registers[r1] & osecpu->registers[r2];
 			}
 			break;
+		case INSTRUCTION_ADD:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1] + osecpu->registers[r2];
+			}
+			break;
+		case INSTRUCTION_SUB:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1] - osecpu->registers[r2];
+			}
+			break;
+		case INSTRUCTION_MUL:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1] * osecpu->registers[r2];
+			}
+			break;
+		case INSTRUCTION_SHL:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1] << osecpu->registers[r2];
+			}
+			break;
+		case INSTRUCTION_SAR:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1] >> osecpu->registers[r2];
+			}
+			break;
+		case INSTRUCTION_DIV:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				if (osecpu->registers[r2] == 0) goto division_by_zero_error;
+				osecpu->registers[r0] = osecpu->registers[r1] / osecpu->registers[r2];
+			}
+			break;
+		case INSTRUCTION_MOD:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				if (osecpu->registers[r2] == 0) goto division_by_zero_error;
+				osecpu->registers[r0] = osecpu->registers[r1] % osecpu->registers[r2];
+			}
+			break;
 		default:
 			osecpu->invalid_instruction_error = icode;
 			return -1;
@@ -208,6 +309,10 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 
 invalid_argument_error:
 	osecpu->invalid_argument_error = 1;
+	return -1;
+
+division_by_zero_error:
+	osecpu->division_by_zero_error = 1;
 	return -1;
 }
 
@@ -251,6 +356,8 @@ int main(int argc, char** argv)
 		fprintf(stderr, "Error: invalid instruction error (%08X)\n", osecpu->invalid_instruction_error);
 	} else if (osecpu->invalid_argument_error) {
 		fprintf(stderr, "Error: invalid argument error\n");
+	} else if (osecpu->invalid_argument_error) {
+		fprintf(stderr, "Error: division by zero error\n");
 	}
 
 	coredump(osecpu);
