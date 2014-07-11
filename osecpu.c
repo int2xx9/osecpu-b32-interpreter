@@ -17,6 +17,21 @@
 #define INSTRUCTION_MOD  0x7600001b
 #define INSTRUCTION_LIDR 0x760000fd
 
+struct Osecpu* init_osecpu()
+{
+	struct Osecpu* osecpu;
+	osecpu = (struct Osecpu*)malloc(sizeof(struct Osecpu));
+	if (!osecpu) return NULL;
+	memset(osecpu, 0, sizeof(struct Osecpu));
+	return osecpu;
+}
+
+void free_osecpu(struct Osecpu* osecpu)
+{
+	if (osecpu->code) free(osecpu->code);
+	free(osecpu);
+}
+
 int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 {
 	FILE* fp;

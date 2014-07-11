@@ -16,6 +16,8 @@ struct Osecpu
 	int division_by_zero_error;
 };
 
+struct Osecpu* init_osecpu();
+void free_osecpu(struct Osecpu*);
 int load_b32_from_file(struct Osecpu*, const char*);
 void coredump(struct Osecpu*);
 int run_b32(struct Osecpu*);

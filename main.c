@@ -12,12 +12,11 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	osecpu = (struct Osecpu*)malloc(sizeof(struct Osecpu));
+	osecpu = init_osecpu();
 	if (!osecpu) {
-		printf("malloc() failed\n");
+		printf("init_osecpu() failed\n");
 		exit(EXIT_FAILURE);
 	}
-	memset(osecpu, 0, sizeof(struct Osecpu));
 
 	if (load_b32_from_file(osecpu, argv[1]) == -1) {
 		printf("load_b32() error\n");
@@ -37,9 +36,7 @@ int main(int argc, char** argv)
 
 	coredump(osecpu);
 
-	if (osecpu->code) free(osecpu->code);
-	free(osecpu);
-
+	free_osecpu(osecpu);
 	return 0;
 }
 
