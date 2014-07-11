@@ -5,6 +5,9 @@
 
 #define INSTRUCTION_LIMM 0x76000002
 #define INSTRUCTION_LIDR 0x760000fd
+#define INSTRUCTION_OR   0x76000010
+#define INSTRUCTION_XOR  0x76000011
+#define INSTRUCTION_AND  0x76000012
 
 struct Osecpu
 {
@@ -156,6 +159,45 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 				if (resv != 0xfffff788) goto invalid_argument_error;
 				if (dr < 0 || dr > 4) goto invalid_argument_error;
 				osecpu->dregisters[dr] = imm;
+			}
+			break;
+		case INSTRUCTION_OR:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu);
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1] | osecpu->registers[r2];
+			}
+			break;
+		case INSTRUCTION_XOR:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu);
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1] ^ osecpu->registers[r2];
+			}
+			break;
+		case INSTRUCTION_AND:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit = fetch_code(osecpu);
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1] & osecpu->registers[r2];
 			}
 			break;
 		default:
