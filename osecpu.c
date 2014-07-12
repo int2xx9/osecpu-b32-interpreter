@@ -4,18 +4,24 @@
 #include <string.h>
 #include <inttypes.h>
 
-#define INSTRUCTION_LIMM 0x76000002
-#define INSTRUCTION_OR   0x76000010
-#define INSTRUCTION_XOR  0x76000011
-#define INSTRUCTION_AND  0x76000012
-#define INSTRUCTION_ADD  0x76000014
-#define INSTRUCTION_SUB  0x76000015
-#define INSTRUCTION_MUL  0x76000016
-#define INSTRUCTION_SHL  0x76000018
-#define INSTRUCTION_SAR  0x76000019
-#define INSTRUCTION_DIV  0x7600001a
-#define INSTRUCTION_MOD  0x7600001b
-#define INSTRUCTION_LIDR 0x760000fd
+#define INSTRUCTION_LIMM	0x76000002
+#define INSTRUCTION_OR		0x76000010
+#define INSTRUCTION_XOR		0x76000011
+#define INSTRUCTION_AND		0x76000012
+#define INSTRUCTION_ADD		0x76000014
+#define INSTRUCTION_SUB		0x76000015
+#define INSTRUCTION_MUL		0x76000016
+#define INSTRUCTION_SHL		0x76000018
+#define INSTRUCTION_SAR		0x76000019
+#define INSTRUCTION_DIV		0x7600001a
+#define INSTRUCTION_MOD		0x7600001b
+#define INSTRUCTION_CMPE	0x76000020
+#define INSTRUCTION_CMPNE	0x76000021
+#define INSTRUCTION_CMPL	0x76000022
+#define INSTRUCTION_CMPGE	0x76000023
+#define INSTRUCTION_CMPLE	0x76000024
+#define INSTRUCTION_CMPG	0x76000025
+#define INSTRUCTION_LIDR	0x760000fd
 
 struct Osecpu* init_osecpu()
 {
@@ -307,6 +313,96 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 				if (bit != 0x20) goto invalid_argument_error;
 				if (osecpu->registers[r2] == 0) goto division_by_zero_error;
 				osecpu->registers[r0] = osecpu->registers[r1] % osecpu->registers[r2];
+			}
+			break;
+		case INSTRUCTION_CMPE:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int bit1 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit0 = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit1 != 0x20) goto invalid_argument_error;
+				if (bit0 != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1]==osecpu->registers[r2] ? -1 : 0;
+			}
+			break;
+		case INSTRUCTION_CMPNE:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int bit1 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit0 = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit1 != 0x20) goto invalid_argument_error;
+				if (bit0 != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1]!=osecpu->registers[r2] ? -1 : 0;
+			}
+			break;
+		case INSTRUCTION_CMPL:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int bit1 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit0 = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit1 != 0x20) goto invalid_argument_error;
+				if (bit0 != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1]<osecpu->registers[r2] ? -1 : 0;
+			}
+			break;
+		case INSTRUCTION_CMPGE:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int bit1 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit0 = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit1 != 0x20) goto invalid_argument_error;
+				if (bit0 != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1]>=osecpu->registers[r2] ? -1 : 0;
+			}
+			break;
+		case INSTRUCTION_CMPLE:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int bit1 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit0 = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit1 != 0x20) goto invalid_argument_error;
+				if (bit0 != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1]<=osecpu->registers[r2] ? -1 : 0;
+			}
+			break;
+		case INSTRUCTION_CMPG:
+			{
+				const int r1 = fetch_code(osecpu)-0x76000000;
+				const int r2 = fetch_code(osecpu)-0x76000000;
+				const int bit1 = fetch_code(osecpu)-0x76000000;
+				const int r0 = fetch_code(osecpu)-0x76000000;
+				const int bit0 = fetch_code(osecpu)-0x76000000;
+				if (r1 < 0 || r1 > 0x3f) goto invalid_argument_error;
+				if (r2 < 0 || r2 > 0x3f) goto invalid_argument_error;
+				if (r0 < 0 || r0 > 0x3f) goto invalid_argument_error;
+				if (bit1 != 0x20) goto invalid_argument_error;
+				if (bit0 != 0x20) goto invalid_argument_error;
+				osecpu->registers[r0] = osecpu->registers[r1]>osecpu->registers[r2] ? -1 : 0;
 			}
 			break;
 		default:

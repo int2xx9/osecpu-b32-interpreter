@@ -96,7 +96,53 @@
 	0x76, 0x00, 0x00, (char)r0, \
 	0x76, 0x00, 0x00, (char)bit
 
-#define run()
+#define CMPE(bit0, bit1, r0, r1, r2) \
+	0x76, 0x00, 0x00, 0x20, \
+	0x76, 0x00, 0x00, (char)r1, \
+	0x76, 0x00, 0x00, (char)r2, \
+	0x76, 0x00, 0x00, (char)bit1, \
+	0x76, 0x00, 0x00, (char)r0, \
+	0x76, 0x00, 0x00, (char)bit0
+
+#define CMPNE(bit0, bit1, r0, r1, r2) \
+	0x76, 0x00, 0x00, 0x21, \
+	0x76, 0x00, 0x00, (char)r1, \
+	0x76, 0x00, 0x00, (char)r2, \
+	0x76, 0x00, 0x00, (char)bit1, \
+	0x76, 0x00, 0x00, (char)r0, \
+	0x76, 0x00, 0x00, (char)bit0
+
+#define CMPL(bit0, bit1, r0, r1, r2) \
+	0x76, 0x00, 0x00, 0x22, \
+	0x76, 0x00, 0x00, (char)r1, \
+	0x76, 0x00, 0x00, (char)r2, \
+	0x76, 0x00, 0x00, (char)bit1, \
+	0x76, 0x00, 0x00, (char)r0, \
+	0x76, 0x00, 0x00, (char)bit0
+
+#define CMPGE(bit0, bit1, r0, r1, r2) \
+	0x76, 0x00, 0x00, 0x23, \
+	0x76, 0x00, 0x00, (char)r1, \
+	0x76, 0x00, 0x00, (char)r2, \
+	0x76, 0x00, 0x00, (char)bit1, \
+	0x76, 0x00, 0x00, (char)r0, \
+	0x76, 0x00, 0x00, (char)bit0
+
+#define CMPLE(bit0, bit1, r0, r1, r2) \
+	0x76, 0x00, 0x00, 0x24, \
+	0x76, 0x00, 0x00, (char)r1, \
+	0x76, 0x00, 0x00, (char)r2, \
+	0x76, 0x00, 0x00, (char)bit1, \
+	0x76, 0x00, 0x00, (char)r0, \
+	0x76, 0x00, 0x00, (char)bit0
+
+#define CMPG(bit0, bit1, r0, r1, r2) \
+	0x76, 0x00, 0x00, 0x25, \
+	0x76, 0x00, 0x00, (char)r1, \
+	0x76, 0x00, 0x00, (char)r2, \
+	0x76, 0x00, 0x00, (char)bit1, \
+	0x76, 0x00, 0x00, (char)r0, \
+	0x76, 0x00, 0x00, (char)bit0
 
 struct Osecpu* run_code(uint8_t code[], int len)
 {
@@ -276,6 +322,174 @@ void test_instruction_mod()
 	// division_by_zero_error
 	osecpu = run_code(code2, sizeof(code2));
 	cut_assert_not_equal_int(0, osecpu->division_by_zero_error);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_cmpe()
+{
+	char code1[] = {
+		LIMM(32, R00, 0x00000000),
+		LIMM(32, R01, 0x00000000),
+		CMPE(32, 32, R02, R00, R01)
+	};
+	char code2[] = {
+		LIMM(32, R00, 0x00000000),
+		LIMM(32, R01, 0x12345678),
+		CMPE(32, 32, R02, R00, R01)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code1, sizeof(code1));
+	cut_assert_equal_int(-1, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code2, sizeof(code2));
+	cut_assert_equal_int(0, osecpu->registers[2]);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_cmpne()
+{
+	char code1[] = {
+		LIMM(32, R00, 0x00000000),
+		LIMM(32, R01, 0x00000000),
+		CMPNE(32, 32, R02, R00, R01)
+	};
+	char code2[] = {
+		LIMM(32, R00, 0x00000000),
+		LIMM(32, R01, 0x12345678),
+		CMPNE(32, 32, R02, R00, R01)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code1, sizeof(code1));
+	cut_assert_equal_int(0, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code2, sizeof(code2));
+	cut_assert_equal_int(-1, osecpu->registers[2]);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_cmpl()
+{
+	char code1[] = {
+		LIMM(32, R00, 0x00010000),
+		LIMM(32, R01, 0x00010000),
+		CMPL(32, 32, R02, R00, R01)
+	};
+	char code2[] = {
+		LIMM(32, R00, 0x00001000),
+		LIMM(32, R01, 0x00000fff),
+		CMPL(32, 32, R02, R00, R01)
+	};
+	char code3[] = {
+		LIMM(32, R00, 0x00001000),
+		LIMM(32, R01, 0x00001001),
+		CMPL(32, 32, R02, R00, R01)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code1, sizeof(code1));
+	cut_assert_equal_int(0, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code2, sizeof(code2));
+	cut_assert_equal_int(0, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code3, sizeof(code3));
+	cut_assert_equal_int(-1, osecpu->registers[2]);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_cmpge()
+{
+	char code1[] = {
+		LIMM(32, R00, 0x00010000),
+		LIMM(32, R01, 0x00010000),
+		CMPGE(32, 32, R02, R00, R01)
+	};
+	char code2[] = {
+		LIMM(32, R00, 0x00001000),
+		LIMM(32, R01, 0x00000fff),
+		CMPGE(32, 32, R02, R00, R01)
+	};
+	char code3[] = {
+		LIMM(32, R00, 0x00001000),
+		LIMM(32, R01, 0x00001001),
+		CMPGE(32, 32, R02, R00, R01)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code1, sizeof(code1));
+	cut_assert_equal_int(-1, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code2, sizeof(code2));
+	cut_assert_equal_int(-1, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code3, sizeof(code3));
+	cut_assert_equal_int(0, osecpu->registers[2]);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_cmple()
+{
+	char code1[] = {
+		LIMM(32, R00, 0x00010000),
+		LIMM(32, R01, 0x00010000),
+		CMPLE(32, 32, R02, R00, R01)
+	};
+	char code2[] = {
+		LIMM(32, R00, 0x00001000),
+		LIMM(32, R01, 0x00000fff),
+		CMPLE(32, 32, R02, R00, R01)
+	};
+	char code3[] = {
+		LIMM(32, R00, 0x00001000),
+		LIMM(32, R01, 0x00001001),
+		CMPLE(32, 32, R02, R00, R01)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code1, sizeof(code1));
+	cut_assert_equal_int(-1, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code2, sizeof(code2));
+	cut_assert_equal_int(0, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code3, sizeof(code3));
+	cut_assert_equal_int(-1, osecpu->registers[2]);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_cmpg()
+{
+	char code1[] = {
+		LIMM(32, R00, 0x00010000),
+		LIMM(32, R01, 0x00010000),
+		CMPG(32, 32, R02, R00, R01)
+	};
+	char code2[] = {
+		LIMM(32, R00, 0x00001000),
+		LIMM(32, R01, 0x00000fff),
+		CMPG(32, 32, R02, R00, R01)
+	};
+	char code3[] = {
+		LIMM(32, R00, 0x00001000),
+		LIMM(32, R01, 0x00001001),
+		CMPG(32, 32, R02, R00, R01)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code1, sizeof(code1));
+	cut_assert_equal_int(0, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code2, sizeof(code2));
+	cut_assert_equal_int(-1, osecpu->registers[2]);
+	free_osecpu(osecpu);
+
+	osecpu = run_code(code3, sizeof(code3));
+	cut_assert_equal_int(0, osecpu->registers[2]);
 	free_osecpu(osecpu);
 }
 
