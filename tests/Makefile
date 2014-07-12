@@ -1,11 +1,11 @@
 CC=gcc
 CFLAGS=
-MAKE=make --no-print-directory
+MAKE=make
 RM=rm -f
 
 .PHONY: default test clean
 default:
-	@$(MAKE) test
+	@$(MAKE) --no-print-directory test
 
 test:
 	$(CC) -shared -fPIC -o test.so test.c ../osecpu.c `pkg-config --cflags --libs cutter`
