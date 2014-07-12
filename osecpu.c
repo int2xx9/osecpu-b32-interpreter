@@ -165,12 +165,12 @@ void do_operate_instruction(struct Osecpu* osecpu, const int icode)
 	const int r0 = fetch_code(osecpu)-0x76000000;
 	const int bit = fetch_code(osecpu)-0x76000000;
 
-	if (r1 < 0 || r1 > 0x3f) osecpu->invalid_argument_error = 1;
-	if (r2 < 0 || r2 > 0x3f) osecpu->invalid_argument_error = 1;
-	if (r0 < 0 || r0 > 0x3f) osecpu->invalid_argument_error = 1;
-	if (bit != 0x20) osecpu->invalid_argument_error = 1;
+	if (r1 < 0 || r1 > 0x3f) osecpu->error = ERROR_INVALID_ARGUMENT;
+	if (r2 < 0 || r2 > 0x3f) osecpu->error = ERROR_INVALID_ARGUMENT;
+	if (r0 < 0 || r0 > 0x3f) osecpu->error = ERROR_INVALID_ARGUMENT;
+	if (bit != 0x20) osecpu->error = ERROR_INVALID_ARGUMENT;
 
-	if (osecpu->invalid_argument_error) return;
+	if (osecpu->error != 0) return;
 
 	switch (icode) {
 		case INSTRUCTION_OR:
@@ -200,7 +200,7 @@ void do_operate_instruction(struct Osecpu* osecpu, const int icode)
 		case INSTRUCTION_DIV:
 		case INSTRUCTION_MOD:
 			if (osecpu->registers[r2] == 0) {
-				osecpu->division_by_zero_error = 1;
+				osecpu->error = ERROR_DIVISION_BY_ZERO;
 			} else if (icode == INSTRUCTION_DIV) {
 				osecpu->registers[r0] = osecpu->registers[r1] / osecpu->registers[r2];
 			} else if (icode == INSTRUCTION_MOD) {
@@ -218,13 +218,13 @@ void do_compare_instruction(struct Osecpu* osecpu, const int icode)
 	const int r0 = fetch_code(osecpu)-0x76000000;
 	const int bit0 = fetch_code(osecpu)-0x76000000;
 
-	if (r1 < 0 || r1 > 0x3f) osecpu->invalid_argument_error = 1;
-	if (r2 < 0 || r2 > 0x3f) osecpu->invalid_argument_error = 1;
-	if (r0 < 0 || r0 > 0x3f) osecpu->invalid_argument_error = 1;
-	if (bit1 != 0x20) osecpu->invalid_argument_error = 1;
-	if (bit0 != 0x20) osecpu->invalid_argument_error = 1;
+	if (r1 < 0 || r1 > 0x3f) osecpu->error = ERROR_INVALID_ARGUMENT;
+	if (r2 < 0 || r2 > 0x3f) osecpu->error = ERROR_INVALID_ARGUMENT;
+	if (r0 < 0 || r0 > 0x3f) osecpu->error = ERROR_INVALID_ARGUMENT;
+	if (bit1 != 0x20) osecpu->error = ERROR_INVALID_ARGUMENT;
+	if (bit0 != 0x20) osecpu->error = ERROR_INVALID_ARGUMENT;
 
-	if (osecpu->invalid_argument_error) return;
+	if (osecpu->error != 0) return;
 
 	switch(icode) {
 		case INSTRUCTION_CMPE:
@@ -248,7 +248,7 @@ void do_compare_instruction(struct Osecpu* osecpu, const int icode)
 	}
 }
 
-int do_instruction(struct Osecpu* osecpu, const int icode)
+void do_instruction(struct Osecpu* osecpu, const int icode)
 {
 	switch (icode) {
 		case INSTRUCTION_LIMM:
@@ -294,14 +294,14 @@ int do_instruction(struct Osecpu* osecpu, const int icode)
 			do_compare_instruction(osecpu, icode);
 			break;
 		default:
-			osecpu->invalid_instruction_error = icode;
-			return -1;
+			osecpu->error = ERROR_INVALID_INSTRUCTION;
+			break;
 	}
-	return 0;
+	return;
 
 invalid_argument_error:
-	osecpu->invalid_argument_error = 1;
-	return -1;
+	osecpu->error = ERROR_INVALID_ARGUMENT;
+	return;
 }
 
 int run_b32(struct Osecpu* osecpu)
@@ -310,7 +310,8 @@ int run_b32(struct Osecpu* osecpu)
 	while (1) {
 		icode = fetch_code(osecpu);
 		if (osecpu->codelen <= osecpu->pregisters[0x3f]) break;
-		if (do_instruction(osecpu, icode) == -1) return -1;
+		do_instruction(osecpu, icode);
+		if (osecpu->error != 0) return -1;
 	}
 	return 0;
 }

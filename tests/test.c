@@ -298,7 +298,7 @@ void test_instruction_div()
 
 	// division_by_zero_error
 	osecpu = run_code(code2, sizeof(code2));
-	cut_assert_not_equal_int(0, osecpu->division_by_zero_error);
+	cut_assert_equal_int(ERROR_DIVISION_BY_ZERO, osecpu->error);
 	free_osecpu(osecpu);
 }
 
@@ -321,7 +321,7 @@ void test_instruction_mod()
 
 	// division_by_zero_error
 	osecpu = run_code(code2, sizeof(code2));
-	cut_assert_not_equal_int(0, osecpu->division_by_zero_error);
+	cut_assert_equal_int(ERROR_DIVISION_BY_ZERO, osecpu->error);
 	free_osecpu(osecpu);
 }
 

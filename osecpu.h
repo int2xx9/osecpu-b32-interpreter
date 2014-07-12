@@ -3,6 +3,10 @@
 
 #include <inttypes.h>
 
+#define ERROR_INVALID_INSTRUCTION	1
+#define ERROR_INVALID_ARGUMENT		2
+#define ERROR_DIVISION_BY_ZERO		3
+
 struct Osecpu
 {
 	int registers[0x40];
@@ -10,10 +14,7 @@ struct Osecpu
 	int dregisters[4];
 	uint8_t* code;
 	long codelen;
-
-	int invalid_instruction_error;
-	int invalid_argument_error;
-	int division_by_zero_error;
+	int error;
 };
 
 struct Osecpu* init_osecpu();

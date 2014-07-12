@@ -26,12 +26,16 @@ int main(int argc, char** argv)
 	}
 
 	run_b32(osecpu);
-	if (osecpu->invalid_instruction_error) {
-		fprintf(stderr, "Error: invalid instruction error (%08X)\n", osecpu->invalid_instruction_error);
-	} else if (osecpu->invalid_argument_error) {
-		fprintf(stderr, "Error: invalid argument error\n");
-	} else if (osecpu->invalid_argument_error) {
-		fprintf(stderr, "Error: division by zero error\n");
+	switch (osecpu->error) {
+		case ERROR_INVALID_INSTRUCTION:
+			fprintf(stderr, "Error: invalid instruction error\n");
+			break;
+		case ERROR_INVALID_ARGUMENT:
+			fprintf(stderr, "Error: invalid argument error\n");
+			break;
+		case ERROR_DIVISION_BY_ZERO:
+			fprintf(stderr, "Error: division by zero error\n");
+			break;
 	}
 
 	coredump(osecpu);
