@@ -290,50 +290,26 @@ void coredump(struct Osecpu* osecpu)
 
 void do_operate_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 {
-	//int* r0 = osecpu->registers[inst->arg.operate.r0]
+	int* r0 = &osecpu->registers[inst->arg.operate.r0];
+	const int r1 = osecpu->registers[inst->arg.operate.r1];
+	const int r2 = osecpu->registers[inst->arg.operate.r2];
 	switch (inst->id) {
-		case OR:
-			osecpu->registers[inst->arg.operate.r0] =
-				osecpu->registers[inst->arg.operate.r1] | osecpu->registers[inst->arg.operate.r2];
-			break;
-		case XOR:
-			osecpu->registers[inst->arg.operate.r0] =
-				osecpu->registers[inst->arg.operate.r1] ^ osecpu->registers[inst->arg.operate.r2];
-			break;
-		case AND:
-			osecpu->registers[inst->arg.operate.r0] =
-				osecpu->registers[inst->arg.operate.r1] & osecpu->registers[inst->arg.operate.r2];
-			break;
-		case ADD:
-			osecpu->registers[inst->arg.operate.r0] =
-				osecpu->registers[inst->arg.operate.r1] + osecpu->registers[inst->arg.operate.r2];
-			break;
-		case SUB:
-			osecpu->registers[inst->arg.operate.r0] =
-				osecpu->registers[inst->arg.operate.r1] - osecpu->registers[inst->arg.operate.r2];
-			break;
-		case MUL:
-			osecpu->registers[inst->arg.operate.r0] =
-				osecpu->registers[inst->arg.operate.r1] * osecpu->registers[inst->arg.operate.r2];
-			break;
-		case SHL:
-			osecpu->registers[inst->arg.operate.r0] =
-				osecpu->registers[inst->arg.operate.r1] << osecpu->registers[inst->arg.operate.r2];
-			break;
-		case SAR:
-			osecpu->registers[inst->arg.operate.r0] =
-				osecpu->registers[inst->arg.operate.r1] >> osecpu->registers[inst->arg.operate.r2];
-			break;
+		case OR:  *r0 = r1 |  r2; break;
+		case XOR: *r0 = r1 ^  r2; break;
+		case AND: *r0 = r1 &  r2; break;
+		case ADD: *r0 = r1 +  r2; break;
+		case SUB: *r0 = r1 -  r2; break;
+		case MUL: *r0 = r1 *  r2; break;
+		case SHL: *r0 = r1 << r2; break;
+		case SAR: *r0 = r1 >> r2; break;
 		case DIV:
 		case MOD:
-			if (osecpu->registers[inst->arg.operate.r2] == 0) {
+			if (r2 == 0) {
 				osecpu->error = ERROR_DIVISION_BY_ZERO;
 			} else if (inst->id == DIV) {
-				osecpu->registers[inst->arg.operate.r0] =
-					osecpu->registers[inst->arg.operate.r1] / osecpu->registers[inst->arg.operate.r2];
+				*r0 = r1 / r2;
 			} else if (inst->id == MOD) {
-				osecpu->registers[inst->arg.operate.r0] =
-					osecpu->registers[inst->arg.operate.r1] % osecpu->registers[inst->arg.operate.r2];
+				*r0 = r1 % r2;
 			}
 			break;
 	}
@@ -341,37 +317,16 @@ void do_operate_instruction(struct Osecpu* osecpu, const struct Instruction* ins
 
 void do_compare_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 {
+	int* r0 = &osecpu->registers[inst->arg.compare.r0];
+	const int r1 = osecpu->registers[inst->arg.compare.r1];
+	const int r2 = osecpu->registers[inst->arg.compare.r2];
 	switch(inst->id) {
-		case CMPE:
-			osecpu->registers[inst->arg.compare.r0] =
-				osecpu->registers[inst->arg.compare.r1] == osecpu->registers[inst->arg.compare.r2]
-				? -1 : 0;
-			break;
-		case CMPNE:
-			osecpu->registers[inst->arg.compare.r0] =
-				osecpu->registers[inst->arg.compare.r1] != osecpu->registers[inst->arg.compare.r2]
-				? -1 : 0;
-			break;
-		case CMPL:
-			osecpu->registers[inst->arg.compare.r0] =
-				osecpu->registers[inst->arg.compare.r1] < osecpu->registers[inst->arg.compare.r2]
-				? -1 : 0;
-			break;
-		case CMPGE:
-			osecpu->registers[inst->arg.compare.r0] =
-				osecpu->registers[inst->arg.compare.r1] >= osecpu->registers[inst->arg.compare.r2]
-				? -1 : 0;
-			break;
-		case CMPLE:
-			osecpu->registers[inst->arg.compare.r0] =
-				osecpu->registers[inst->arg.compare.r1] <= osecpu->registers[inst->arg.compare.r2]
-				?-1 : 0;
-			break;
-		case CMPG:
-			osecpu->registers[inst->arg.compare.r0] =
-				osecpu->registers[inst->arg.compare.r1] > osecpu->registers[inst->arg.compare.r2]
-				? -1 : 0;
-			break;
+		case CMPE:  *r0 = (r1 == r2) ? -1 : 0; break;
+		case CMPNE: *r0 = (r1 != r2) ? -1 : 0; break;
+		case CMPL:  *r0 = (r1 <  r2) ? -1 : 0; break;
+		case CMPGE: *r0 = (r1 >= r2) ? -1 : 0; break;
+		case CMPLE: *r0 = (r1 <= r2) ? -1 : 0; break;
+		case CMPG:  *r0 = (r1 >  r2) ? -1 : 0; break;
 	}
 }
 
