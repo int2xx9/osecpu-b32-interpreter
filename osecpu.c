@@ -38,6 +38,30 @@ void free_osecpu(struct Osecpu* osecpu)
 	free(osecpu);
 }
 
+const uint8_t* fetch_b32code(const uint8_t* code, int* ret_value)
+{
+	int i;
+	int offset;
+	int fetch_bytes;
+
+	if (strncmp(code, "\x76", 1) == 0) {
+		offset = 1;
+		fetch_bytes = 3;
+	} else if (strncmp(code, "\xff\xff\xf7\x88", 4) == 0) {
+		offset = 4;
+		fetch_bytes = 4;
+	} else {
+		return code;
+	}
+
+	*ret_value = 0;
+	for (i = 0; i < fetch_bytes; i++) {
+		*ret_value = (*ret_value << 8) | code[offset+i];
+	}
+
+	return code+offset+fetch_bytes;
+}
+
 int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 {
 	FILE* fp;
