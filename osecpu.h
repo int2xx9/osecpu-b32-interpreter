@@ -7,6 +7,10 @@
 #define ERROR_INVALID_ARGUMENT		2
 #define ERROR_DIVISION_BY_ZERO		3
 
+#define IS_VALID_REGISTER_ID(regid)((regid) >= 0 || (regid) <= 0x3f)
+#define IS_VALID_PREGISTER_ID(regid)((regid) >= 0 || (regid) <= 0x3f)
+#define IS_VALID_DREGISTER_ID(regid)((regid) >= 0 || (regid) <= 4)
+
 enum InstructionId
 {
 	NOP		= 0x00,

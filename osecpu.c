@@ -62,6 +62,69 @@ int fetch_b32code(const uint8_t* code, int* ret_value)
 	return offset+fetch_bytes;
 }
 
+int fetch_b32instruction(const uint8_t* code, struct Instruction* inst, int* error)
+{
+	int inc;
+
+	*error = 0;
+	inc = fetch_b32code(code, (int*)&inst->id);
+	switch (inst->id)
+	{
+		case LIMM:
+			inc += fetch_b32code(code+inc, &inst->arg.limm.imm);
+			inc += fetch_b32code(code+inc, &inst->arg.limm.r);
+			inc += fetch_b32code(code+inc, &inst->arg.limm.bit);
+			if (!IS_VALID_REGISTER_ID(inst->arg.limm.r)) *error = ERROR_INVALID_ARGUMENT;
+			if (inst->arg.limm.bit != 0x20) *error = ERROR_INVALID_ARGUMENT;
+			break;
+		case LIDR:
+			inc += fetch_b32code(code+inc, &inst->arg.lidr.imm);
+			inc += fetch_b32code(code+inc, &inst->arg.lidr.dr);
+			if (!IS_VALID_DREGISTER_ID(inst->arg.lidr.dr)) *error = ERROR_INVALID_ARGUMENT;
+			break;
+		case OR:
+		case XOR:
+		case AND:
+		case ADD:
+		case SUB:
+		case MUL:
+		case SHL:
+		case SAR:
+		case DIV:
+		case MOD:
+			inc += fetch_b32code(code+inc, &inst->arg.operate.r1);
+			inc += fetch_b32code(code+inc, &inst->arg.operate.r2);
+			inc += fetch_b32code(code+inc, &inst->arg.operate.r0);
+			inc += fetch_b32code(code+inc, &inst->arg.operate.bit);
+			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r1)) *error = ERROR_INVALID_ARGUMENT;
+			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r2)) *error = ERROR_INVALID_ARGUMENT;
+			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r0)) *error = ERROR_INVALID_ARGUMENT;
+			if (inst->arg.operate.bit != 0x20) *error = ERROR_INVALID_ARGUMENT;
+			break;
+		case CMPE:
+		case CMPNE:
+		case CMPL:
+		case CMPGE:
+		case CMPLE:
+		case CMPG:
+			inc += fetch_b32code(code+inc, &inst->arg.compare.r1);
+			inc += fetch_b32code(code+inc, &inst->arg.compare.r2);
+			inc += fetch_b32code(code+inc, &inst->arg.compare.bit1);
+			inc += fetch_b32code(code+inc, &inst->arg.compare.r0);
+			inc += fetch_b32code(code+inc, &inst->arg.compare.bit0);
+			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r1)) *error = ERROR_INVALID_ARGUMENT;
+			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r2)) *error = ERROR_INVALID_ARGUMENT;
+			if (inst->arg.compare.bit1 != 0x20) *error = ERROR_INVALID_ARGUMENT;
+			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r0)) *error = ERROR_INVALID_ARGUMENT;
+			if (inst->arg.compare.bit0 != 0x20) *error = ERROR_INVALID_ARGUMENT;
+			break;
+		default:
+			*error = ERROR_INVALID_INSTRUCTION;
+			return 0;
+	}
+	return inc;
+}
+
 int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 {
 	FILE* fp;

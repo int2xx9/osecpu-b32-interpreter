@@ -473,3 +473,31 @@ void test_fetch_b32code()
 	cut_assert_equal_int(0, code_ret);
 }
 
+extern int fetch_b32instruction(const uint8_t*, struct Instruction*, int*);
+void test_fetch_b32instruction()
+{
+	uint8_t code_limm[] = {LIMM(32, R00, 0x12345678)};
+	uint8_t code_lidr[] = {LIDR(DR0, 0x12345678)};
+	uint8_t code_operate[] = {OR(32, R02, R00, R01)};
+	uint8_t code_compare[] = {CMPE(32, 32, R02, R00, R01)};
+	struct Instruction inst;
+	int error;
+	int ret;
+
+	ret = fetch_b32instruction(code_limm, &inst, &error);
+	cut_assert_equal_int(4*5, ret);
+	cut_assert_equal_int(0, error);
+
+	ret = fetch_b32instruction(code_lidr, &inst, &error);
+	cut_assert_equal_int(4*4, ret);
+	cut_assert_equal_int(0, error);
+
+	ret = fetch_b32instruction(code_operate, &inst, &error);
+	cut_assert_equal_int(4*5, ret);
+	cut_assert_equal_int(0, error);
+
+	ret = fetch_b32instruction(code_compare, &inst, &error);
+	cut_assert_equal_int(4*6, ret);
+	cut_assert_equal_int(0, error);
+}
+
