@@ -38,7 +38,7 @@ void free_osecpu(struct Osecpu* osecpu)
 	free(osecpu);
 }
 
-const uint8_t* fetch_b32code(const uint8_t* code, int* ret_value)
+int fetch_b32code(const uint8_t* code, int* ret_value)
 {
 	int i;
 	int offset;
@@ -51,7 +51,7 @@ const uint8_t* fetch_b32code(const uint8_t* code, int* ret_value)
 		offset = 4;
 		fetch_bytes = 4;
 	} else {
-		return code;
+		return 0;
 	}
 
 	*ret_value = 0;
@@ -59,7 +59,7 @@ const uint8_t* fetch_b32code(const uint8_t* code, int* ret_value)
 		*ret_value = (*ret_value << 8) | code[offset+i];
 	}
 
-	return code+offset+fetch_bytes;
+	return offset+fetch_bytes;
 }
 
 int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
