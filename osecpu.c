@@ -181,6 +181,7 @@ int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len)
 	}
 
 	osecpu->code = (struct Instruction*)malloc(sizeof(struct Instruction) * instcnt);
+	if (!osecpu->code) return 0;
 
 	for (codepos = i = 0; i < instcnt; i++) {
 		// error always must be 0
