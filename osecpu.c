@@ -38,49 +38,70 @@ void free_osecpu(struct Osecpu* osecpu)
 	free(osecpu);
 }
 
-int fetch_b32code(const uint8_t* code, int* ret_value)
+int fetch_b32code(const uint8_t* code, const int base, const int len, int* ret_value)
 {
 	int i;
 	int offset;
 	int fetch_bytes;
 
-	if (strncmp(code, "\x76", 1) == 0) {
+	if (strncmp(code+base, "\x76", 1) == 0) {
 		offset = 1;
 		fetch_bytes = 3;
-	} else if (strncmp(code, "\xff\xff\xf7\x88", 4) == 0) {
+	} else if (strncmp(code+base, "\xff\xff\xf7\x88", 4) == 0) {
 		offset = 4;
 		fetch_bytes = 4;
 	} else {
 		return 0;
 	}
 
+	// Validate buffer overflow
+	if (base+offset+fetch_bytes > len) {
+		return 0;
+	}
+
 	*ret_value = 0;
 	for (i = 0; i < fetch_bytes; i++) {
-		*ret_value = (*ret_value << 8) | code[offset+i];
+		*ret_value = (*ret_value << 8) | code[base+offset+i];
 	}
 
 	return offset+fetch_bytes;
 }
 
-int fetch_b32instruction(const uint8_t* code, struct Instruction* inst, int* error)
+int fetch_b32instruction(const uint8_t* code, const int base, const int len, struct Instruction* inst, int* error)
 {
 	int inc;
+	int ret;
 
 	*error = 0;
-	inc = fetch_b32code(code, (int*)&inst->id);
+	inc = ret = fetch_b32code(code, base, len, (int*)&inst->id);
+	if (ret == 0) {
+		if (inc >= len) {
+			*error = 0;
+		} else {
+			*error = ERROR_INVALID_B32_CODE;
+		}
+		return 0;
+	}
 	switch (inst->id)
 	{
 		case LIMM:
-			inc += fetch_b32code(code+inc, &inst->arg.limm.imm);
-			inc += fetch_b32code(code+inc, &inst->arg.limm.r);
-			inc += fetch_b32code(code+inc, &inst->arg.limm.bit);
-			if (!IS_VALID_REGISTER_ID(inst->arg.limm.r)) *error = ERROR_INVALID_ARGUMENT;
-			if (inst->arg.limm.bit != 0x20) *error = ERROR_INVALID_ARGUMENT;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.limm.imm);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.limm.r);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.limm.bit);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_REGISTER_ID(inst->arg.limm.r)) goto invalid_argument_error;
+			if (inst->arg.limm.bit != 0x20) goto invalid_argument_error;
 			break;
 		case LIDR:
-			inc += fetch_b32code(code+inc, &inst->arg.lidr.imm);
-			inc += fetch_b32code(code+inc, &inst->arg.lidr.dr);
-			if (!IS_VALID_DREGISTER_ID(inst->arg.lidr.dr)) *error = ERROR_INVALID_ARGUMENT;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lidr.imm);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lidr.dr);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_DREGISTER_ID(inst->arg.lidr.dr)) goto invalid_argument_error;
 			break;
 		case OR:
 		case XOR:
@@ -92,14 +113,19 @@ int fetch_b32instruction(const uint8_t* code, struct Instruction* inst, int* err
 		case SAR:
 		case DIV:
 		case MOD:
-			inc += fetch_b32code(code+inc, &inst->arg.operate.r1);
-			inc += fetch_b32code(code+inc, &inst->arg.operate.r2);
-			inc += fetch_b32code(code+inc, &inst->arg.operate.r0);
-			inc += fetch_b32code(code+inc, &inst->arg.operate.bit);
-			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r1)) *error = ERROR_INVALID_ARGUMENT;
-			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r2)) *error = ERROR_INVALID_ARGUMENT;
-			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r0)) *error = ERROR_INVALID_ARGUMENT;
-			if (inst->arg.operate.bit != 0x20) *error = ERROR_INVALID_ARGUMENT;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.operate.r1);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.operate.r2);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.operate.r0);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.operate.bit);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r1)) goto invalid_argument_error;
+			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r2)) goto invalid_argument_error;
+			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r0)) goto invalid_argument_error;
+			if (inst->arg.operate.bit != 0x20) goto invalid_argument_error;
 			break;
 		case CMPE:
 		case CMPNE:
@@ -107,22 +133,40 @@ int fetch_b32instruction(const uint8_t* code, struct Instruction* inst, int* err
 		case CMPGE:
 		case CMPLE:
 		case CMPG:
-			inc += fetch_b32code(code+inc, &inst->arg.compare.r1);
-			inc += fetch_b32code(code+inc, &inst->arg.compare.r2);
-			inc += fetch_b32code(code+inc, &inst->arg.compare.bit1);
-			inc += fetch_b32code(code+inc, &inst->arg.compare.r0);
-			inc += fetch_b32code(code+inc, &inst->arg.compare.bit0);
-			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r1)) *error = ERROR_INVALID_ARGUMENT;
-			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r2)) *error = ERROR_INVALID_ARGUMENT;
-			if (inst->arg.compare.bit1 != 0x20) *error = ERROR_INVALID_ARGUMENT;
-			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r0)) *error = ERROR_INVALID_ARGUMENT;
-			if (inst->arg.compare.bit0 != 0x20) *error = ERROR_INVALID_ARGUMENT;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.r1);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.r2);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.bit1);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.r0);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.bit0);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r1)) goto invalid_argument_error;
+			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r2)) goto invalid_argument_error;
+			if (inst->arg.compare.bit1 != 0x20) goto invalid_argument_error;
+			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r0)) goto invalid_argument_error;
+			if (inst->arg.compare.bit0 != 0x20) goto invalid_argument_error;
 			break;
 		default:
 			*error = ERROR_INVALID_INSTRUCTION;
 			return 0;
 	}
 	return inc;
+
+fetch_b32code_error:
+	if (inc >= len) {
+		*error = ERROR_UNEXPECTED_EOC;
+	} else {
+		*error = ERROR_INVALID_B32_CODE;
+	}
+	return 0;
+
+invalid_argument_error:
+	*error = ERROR_INVALID_ARGUMENT;
+	return 0;
 }
 
 int load_b32_from_file(struct Osecpu* osecpu, const char* filename)

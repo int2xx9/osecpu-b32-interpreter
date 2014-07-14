@@ -6,6 +6,8 @@
 #define ERROR_INVALID_INSTRUCTION	1
 #define ERROR_INVALID_ARGUMENT		2
 #define ERROR_DIVISION_BY_ZERO		3
+#define ERROR_INVALID_B32_CODE		4
+#define ERROR_UNEXPECTED_EOC		5
 
 #define IS_VALID_REGISTER_ID(regid)((regid) >= 0 || (regid) <= 0x3f)
 #define IS_VALID_PREGISTER_ID(regid)((regid) >= 0 || (regid) <= 0x3f)

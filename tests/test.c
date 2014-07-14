@@ -452,52 +452,66 @@ void test_instruction_cmpg()
 	free_osecpu(osecpu);
 }
 
-extern int fetch_b32code(const uint8_t*, int*);
+extern int fetch_b32code(const uint8_t*, const int, const int, int*);
 void test_fetch_b32code()
 {
 	uint8_t code1[] = {0x76, 0x12, 0x34, 0x56};
 	uint8_t code2[] = {0xff, 0xff, 0xf7, 0x88, 0x12, 0x34, 0x56, 0x78};
 	uint8_t code3[] = {0x00};
+	uint8_t code4[] = {0xff, 0xff, 0xf7, 0x88};
 	int ret;
 	int code_ret;
 
-	code_ret = fetch_b32code(code1, &ret);
+	code_ret = fetch_b32code(code1, 0, sizeof(code1), &ret);
 	cut_assert_equal_int(0x123456, ret);
 	cut_assert_equal_int(4, code_ret);
 
-	code_ret = fetch_b32code(code2, &ret);
+	code_ret = fetch_b32code(code2, 0, sizeof(code2), &ret);
 	cut_assert_equal_int(0x12345678, ret);
 	cut_assert_equal_int(8, code_ret);
 
-	code_ret = fetch_b32code(code3, &ret);
+	code_ret = fetch_b32code(code3, 0, sizeof(code3), &ret);
+	cut_assert_equal_int(0, code_ret);
+
+	code_ret = fetch_b32code(code4, 0, sizeof(code4), &ret);
 	cut_assert_equal_int(0, code_ret);
 }
 
-extern int fetch_b32instruction(const uint8_t*, struct Instruction*, int*);
+extern int fetch_b32instruction(const uint8_t*, const int, const int, struct Instruction*, int*);
 void test_fetch_b32instruction()
 {
 	uint8_t code_limm[] = {LIMM(32, R00, 0x12345678)};
 	uint8_t code_lidr[] = {LIDR(DR0, 0x12345678)};
 	uint8_t code_operate[] = {OR(32, R02, R00, R01)};
 	uint8_t code_compare[] = {CMPE(32, 32, R02, R00, R01)};
+	uint8_t code_eoc[] = {};
+	uint8_t code_unexpected_eoc[] = {0x76, 0x00, 0x00, 0x10};
 	struct Instruction inst;
 	int error;
 	int ret;
 
-	ret = fetch_b32instruction(code_limm, &inst, &error);
+	ret = fetch_b32instruction(code_limm, 0, sizeof(code_limm), &inst, &error);
 	cut_assert_equal_int(4*5, ret);
 	cut_assert_equal_int(0, error);
 
-	ret = fetch_b32instruction(code_lidr, &inst, &error);
+	ret = fetch_b32instruction(code_lidr, 0, sizeof(code_lidr), &inst, &error);
 	cut_assert_equal_int(4*4, ret);
 	cut_assert_equal_int(0, error);
 
-	ret = fetch_b32instruction(code_operate, &inst, &error);
+	ret = fetch_b32instruction(code_operate, 0, sizeof(code_operate), &inst, &error);
 	cut_assert_equal_int(4*5, ret);
 	cut_assert_equal_int(0, error);
 
-	ret = fetch_b32instruction(code_compare, &inst, &error);
+	ret = fetch_b32instruction(code_compare, 0, sizeof(code_compare), &inst, &error);
 	cut_assert_equal_int(4*6, ret);
 	cut_assert_equal_int(0, error);
+
+	ret = fetch_b32instruction(code_eoc, 0, sizeof(code_eoc), &inst, &error);
+	cut_assert_equal_int(0, ret);
+	cut_assert_equal_int(0, error);
+
+	ret = fetch_b32instruction(code_unexpected_eoc, 0, sizeof(code_unexpected_eoc), &inst, &error);
+	cut_assert_equal_int(0, ret);
+	cut_assert_equal_int(ERROR_UNEXPECTED_EOC, error);
 }
 
