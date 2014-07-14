@@ -4,6 +4,8 @@
 #include <string.h>
 #include <inttypes.h>
 
+#define B32_SIGNATURE "\x05\xe2\x00\xcf\xee\x7f\xf1\x88"
+
 struct Osecpu* init_osecpu()
 {
 	struct Osecpu* osecpu;
@@ -229,8 +231,8 @@ int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 
 	fclose(fp);
 
-	// シグネチャチェック
-	if (strcmp(code, "\x05\xe2\x00\xcf\xee\x7f\xf1\x88") != 0) {
+	// Validate a signature
+	if (strncmp(code, B32_SIGNATURE, strlen(B32_SIGNATURE)) != 0) {
 		free(code);
 		return -1;
 	}
