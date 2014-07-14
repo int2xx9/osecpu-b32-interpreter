@@ -86,9 +86,8 @@ struct Osecpu
 	int registers[0x40];
 	int pregisters[0x40];
 	int dregisters[4];
-	struct Instruction* code_tmp;
-	uint8_t* code;
-	long codelen;
+	struct Instruction* code;
+	int codelen;
 	int error;
 };
 
