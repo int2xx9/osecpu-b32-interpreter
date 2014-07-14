@@ -35,6 +35,7 @@ struct Osecpu* init_osecpu()
 void free_osecpu(struct Osecpu* osecpu)
 {
 	if (osecpu->code) free(osecpu->code);
+	if (osecpu->code_tmp) free(osecpu->code_tmp);
 	free(osecpu);
 }
 
@@ -185,6 +186,29 @@ int count_instructions(const uint8_t* code, const int len, int* error)
 	}
 
 	return instcnt;
+}
+
+int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len)
+{
+	int error;
+	const int instcnt = count_instructions(code, len, &error);
+	int i;
+	int codepos;
+
+	if (error != 0) {
+		osecpu->error = error;
+		return 0;
+	}
+
+	osecpu->code_tmp = (struct Instruction*)malloc(sizeof(struct Instruction) * instcnt);
+
+	for (codepos = i = 0; i < instcnt; i++) {
+		// error always must be 0
+		// (count_instructions() already validated arguments)
+		codepos += fetch_b32instruction(code, codepos, len, &osecpu->code_tmp[i], &error);
+	}
+
+	return 1;
 }
 
 int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
