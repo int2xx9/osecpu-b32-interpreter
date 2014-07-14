@@ -515,3 +515,24 @@ void test_fetch_b32instruction()
 	cut_assert_equal_int(ERROR_UNEXPECTED_EOC, error);
 }
 
+extern int count_instructions(const uint8_t*, const int, int*);
+void test_count_instructions()
+{
+	uint8_t code_empty[] = {};
+	uint8_t code_1[] = {
+		LIMM(32, R00, 0x12345678)
+	};
+	int error;
+	int ret;
+
+	/*
+	ret = count_instructions(code_empty, sizeof(code_empty), &error);
+	cut_assert_equal_int(0, ret);
+	cut_assert_equal_int(0, error);
+	*/
+
+	ret = count_instructions(code_1, sizeof(code_1), &error);
+	cut_assert_equal_int(1, ret);
+	cut_assert_equal_int(0, error);
+}
+

@@ -169,6 +169,24 @@ invalid_argument_error:
 	return 0;
 }
 
+int count_instructions(const uint8_t* code, const int len, int* error)
+{
+	int codepos = 0;
+	struct Instruction inst;
+	int ret;
+	int instcnt = 0;
+	*error = 0;
+
+	while (1)
+	{
+		codepos += ret = fetch_b32instruction(code, codepos, len, &inst, error);
+		if (ret == 0) break;
+		instcnt++;
+	}
+
+	return instcnt;
+}
+
 int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 {
 	FILE* fp;
