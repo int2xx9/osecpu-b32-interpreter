@@ -525,11 +525,9 @@ void test_count_instructions()
 	int error;
 	int ret;
 
-	/*
 	ret = count_instructions(code_empty, sizeof(code_empty), &error);
 	cut_assert_equal_int(0, ret);
 	cut_assert_equal_int(0, error);
-	*/
 
 	ret = count_instructions(code_1, sizeof(code_1), &error);
 	cut_assert_equal_int(1, ret);
