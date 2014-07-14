@@ -75,7 +75,7 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 	*error = 0;
 	inc = ret = fetch_b32code(code, base, len, (int*)&inst->id);
 	if (ret == 0) {
-		if (inc >= len) {
+		if (base+inc >= len) {
 			*error = 0;
 		} else {
 			*error = ERROR_INVALID_B32_CODE;
