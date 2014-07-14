@@ -452,24 +452,24 @@ void test_instruction_cmpg()
 	free_osecpu(osecpu);
 }
 
-extern const uint8_t* fetch_b32code(const uint8_t*, int*);
+extern int fetch_b32code(const uint8_t*, int*);
 void test_fetch_b32code()
 {
 	uint8_t code1[] = {0x76, 0x12, 0x34, 0x56};
 	uint8_t code2[] = {0xff, 0xff, 0xf7, 0x88, 0x12, 0x34, 0x56, 0x78};
 	uint8_t code3[] = {0x00};
 	int ret;
-	const uint8_t* code_ret;
+	int code_ret;
 
 	code_ret = fetch_b32code(code1, &ret);
 	cut_assert_equal_int(0x123456, ret);
-	cut_assert_equal_int(4, code_ret-code1);
+	cut_assert_equal_int(4, code_ret);
 
 	code_ret = fetch_b32code(code2, &ret);
 	cut_assert_equal_int(0x12345678, ret);
-	cut_assert_equal_int(8, code_ret-code2);
+	cut_assert_equal_int(8, code_ret);
 
 	code_ret = fetch_b32code(code3, &ret);
-	cut_assert_equal_int(0, code_ret-code3);
+	cut_assert_equal_int(0, code_ret);
 }
 
