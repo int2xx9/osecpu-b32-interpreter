@@ -13,6 +13,11 @@
 	(unsigned)((val)&0x0000ff00) >>  8, \
 	(unsigned)((val)&0x000000ff) >>  0
 
+#define LB(opt, uimm) \
+	0x76, 0x00, 0x00, 0x01, \
+	little_to_big(uimm | 0x76000000), \
+	little_to_big(opt | 0x76000000)
+
 #define LIMM(bit, r, val) \
 	0x76, 0x00, 0x00, 0x02, \
 	0xff, 0xff, 0xf7, 0x88, \
@@ -110,6 +115,25 @@ struct Osecpu* run_code(uint8_t code[], int len)
 	load_b32_from_memory(osecpu, code, len);
 	run_b32(osecpu);
 	return osecpu;
+}
+
+void test_instruction_lb()
+{
+	char code[] = {
+		LB(0, 1),
+		LB(0, 0),
+		LB(0, 2)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code, sizeof(code));
+	cut_assert_equal_int(3, osecpu->labelcnt);
+	cut_assert_equal_int(0, osecpu->labels[0].id);
+	cut_assert_equal_int(1, osecpu->labels[0].pos);
+	cut_assert_equal_int(1, osecpu->labels[1].id);
+	cut_assert_equal_int(0, osecpu->labels[1].pos);
+	cut_assert_equal_int(2, osecpu->labels[2].id);
+	cut_assert_equal_int(2, osecpu->labels[2].pos);
+	free_osecpu(osecpu);
 }
 
 void test_instruction_limm()

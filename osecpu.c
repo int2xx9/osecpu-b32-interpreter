@@ -18,6 +18,7 @@ struct Osecpu* init_osecpu()
 void free_osecpu(struct Osecpu* osecpu)
 {
 	if (osecpu->code) free(osecpu->code);
+	if (osecpu->labels) free(osecpu->labels);
 	free(osecpu);
 }
 
@@ -67,6 +68,14 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 	}
 	switch (inst->id)
 	{
+		case LB:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lb.uimm);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lb.opt);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (inst->arg.lb.opt < 0 || inst->arg.lb.opt > 2) goto invalid_argument_error;
+			break;
 		case LIMM:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.limm.imm);
 			if (ret == 0) goto fetch_b32code_error;
@@ -170,6 +179,38 @@ int count_instructions(const uint8_t* code, const int len, int* error)
 	return instcnt;
 }
 
+int compare_labels(const struct Label* a, const struct Label* b) { return a->id > b->id; }
+int prepare_labels(struct Osecpu* osecpu)
+{
+	int i, j;
+	int labelcnt;
+	struct Label* labels;
+
+	if (osecpu->codelen == 0) return 0;
+
+	for (labelcnt = i = 0; i < osecpu->codelen; i++) {
+		if (osecpu->code[i].id == LB) {
+			labelcnt++;
+		}
+	}
+
+	labels = (struct Label*)malloc(sizeof(struct Label) * labelcnt);
+	if (!labels) return 0;
+
+	for (i = j = 0; i < labelcnt; i++, j++) {
+		if (osecpu->code[i].id != LB) continue;
+		labels[j].id = osecpu->code[i].arg.lb.uimm;
+		labels[j].pos = i;
+	}
+
+	qsort(labels, labelcnt, sizeof(struct Label), (int (*)(const void*, const void*))compare_labels);
+
+	osecpu->labels = labels;
+	osecpu->labelcnt = labelcnt;
+
+	return 1;
+}
+
 int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len)
 {
 	int error;
@@ -192,6 +233,8 @@ int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len)
 	}
 
 	osecpu->codelen = instcnt;
+
+	if (!prepare_labels(osecpu)) return 0;
 
 	return 1;
 }
@@ -288,6 +331,12 @@ void coredump(struct Osecpu* osecpu)
 		printf("DR%X: %08X\t", i, osecpu->dregisters[i]);
 	}
 	printf("\n\n");
+
+	printf("Labels:\n");
+	for (i = 0; i < osecpu->labelcnt; i++) {
+		printf("%06x: %08x\n", osecpu->labels[i].id, osecpu->labels[i].pos);
+	}
+	printf("\n");
 }
 
 void do_operate_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
@@ -360,6 +409,9 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case CMPLE:
 		case CMPG:
 			do_compare_instruction(osecpu, inst);
+			break;
+		case LB:
+			// Nothing to do
 			break;
 		default:
 			osecpu->error = ERROR_INVALID_INSTRUCTION;

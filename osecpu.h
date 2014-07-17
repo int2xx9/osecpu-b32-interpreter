@@ -54,6 +54,11 @@ struct Instruction
 	{
 		struct
 		{
+			int uimm;
+			int opt;
+		} lb;
+		struct
+		{
 			int imm;
 			int r;
 			int bit;
@@ -81,6 +86,12 @@ struct Instruction
 	} arg;
 };
 
+struct Label
+{
+	int id;
+	int pos;
+};
+
 struct Osecpu
 {
 	int registers[0x40];
@@ -88,6 +99,8 @@ struct Osecpu
 	int dregisters[4];
 	struct Instruction* code;
 	int codelen;
+	struct Label* labels;
+	int labelcnt;
 	int error;
 };
 
