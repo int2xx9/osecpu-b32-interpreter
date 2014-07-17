@@ -5,6 +5,8 @@
 #define R01 1
 #define R02 2
 
+#define P3F 0x3f
+
 #define DR0 0
 
 #define little_to_big(val) \
@@ -24,6 +26,11 @@
 	little_to_big(val), \
 	0x76, 0x00, 0x00, (char)r, \
 	0x76, 0x00, 0x00, (char)bit
+
+#define PLIMM(p, val) \
+	0x76, 0x00, 0x00, 0x03, \
+	little_to_big(val | 0x76000000), \
+	little_to_big(p | 0x76000000)
 
 #define LIDR(r, val) \
 	0x76, 0x00, 0x00, 0xfd, \
@@ -144,6 +151,19 @@ void test_instruction_limm()
 	struct Osecpu* osecpu;
 	osecpu = run_code(code, sizeof(code));
 	cut_assert_equal_int(0x12345678, osecpu->registers[0]);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_plimm()
+{
+	char code[] = {
+		PLIMM(P3F, 0),
+		LIMM(32, R00, 0xffffffff),
+		LB(0, 0)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code, sizeof(code));
+	cut_assert_equal_int(0, osecpu->registers[0]);
 	free_osecpu(osecpu);
 }
 
@@ -556,5 +576,22 @@ void test_count_instructions()
 	ret = count_instructions(code_1, sizeof(code_1), &error);
 	cut_assert_equal_int(1, ret);
 	cut_assert_equal_int(0, error);
+}
+
+extern const struct Label* get_label(struct Osecpu*, int);
+void test_get_label()
+{
+	char code[] = {
+		LB(0, 1),
+		LB(0, 0),
+		LB(0, 2)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code, sizeof(code));
+	cut_assert_equal_int(0, get_label(osecpu, 0)->id);
+	cut_assert_equal_int(1, get_label(osecpu, 1)->id);
+	cut_assert_equal_int(2, get_label(osecpu, 2)->id);
+	cut_assert_null(get_label(osecpu, 3));
+	free_osecpu(osecpu);
 }
 

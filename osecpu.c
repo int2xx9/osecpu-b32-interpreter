@@ -87,6 +87,14 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (!IS_VALID_REGISTER_ID(inst->arg.limm.r)) goto invalid_argument_error;
 			if (inst->arg.limm.bit != 0x20) goto invalid_argument_error;
 			break;
+		case PLIMM:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.plimm.uimm);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.plimm.p);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_PREGISTER_ID(inst->arg.plimm.p)) goto invalid_argument_error;
+			break;
 		case LIDR:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lidr.imm);
 			if (ret == 0) goto fetch_b32code_error;
@@ -381,11 +389,35 @@ void do_compare_instruction(struct Osecpu* osecpu, const struct Instruction* ins
 	}
 }
 
+int compare_label_bsearch(const int* a, const struct Label* b) { return *a - b->id; }
+const struct Label* get_label(struct Osecpu* osecpu, int id)
+{
+	struct Label* result;
+	result = (struct Label*)bsearch(&id, osecpu->labels,
+			osecpu->labelcnt, sizeof(struct Label),
+			(int (*)(const void*, const void*))compare_label_bsearch
+			);
+	return result;
+}
+
 void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 {
 	switch (inst->id) {
+		case LB:
+			// Nothing to do
+			break;
 		case LIMM:
 			osecpu->registers[inst->arg.limm.r] = inst->arg.limm.imm;
+			break;
+		case PLIMM:
+			{
+				const struct Label* label = get_label(osecpu, inst->arg.plimm.uimm);
+				if (label) {
+					osecpu->pregisters[inst->arg.plimm.p] = label->pos;
+				} else {
+					osecpu->error = ERROR_LABEL_DOES_NOT_EXIST;
+				}
+			}
 			break;
 		case LIDR:
 			osecpu->dregisters[inst->arg.lidr.dr] = inst->arg.lidr.imm;
@@ -409,9 +441,6 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case CMPLE:
 		case CMPG:
 			do_compare_instruction(osecpu, inst);
-			break;
-		case LB:
-			// Nothing to do
 			break;
 		default:
 			osecpu->error = ERROR_INVALID_INSTRUCTION;
