@@ -129,6 +129,7 @@ void test_instruction_lb()
 	char code[] = {
 		LB(0, 1),
 		LB(0, 0),
+		LIMM(32, R00, 0),
 		LB(0, 2)
 	};
 	struct Osecpu* osecpu;
@@ -139,7 +140,7 @@ void test_instruction_lb()
 	cut_assert_equal_int(1, osecpu->labels[1].id);
 	cut_assert_equal_int(0, osecpu->labels[1].pos);
 	cut_assert_equal_int(2, osecpu->labels[2].id);
-	cut_assert_equal_int(2, osecpu->labels[2].pos);
+	cut_assert_equal_int(3, osecpu->labels[2].pos);
 	free_osecpu(osecpu);
 }
 

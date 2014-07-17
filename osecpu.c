@@ -205,10 +205,11 @@ int prepare_labels(struct Osecpu* osecpu)
 	labels = (struct Label*)malloc(sizeof(struct Label) * labelcnt);
 	if (!labels) return 0;
 
-	for (i = j = 0; i < labelcnt; i++, j++) {
+	for (i = j = 0; j < labelcnt; i++) {
 		if (osecpu->code[i].id != LB) continue;
 		labels[j].id = osecpu->code[i].arg.lb.uimm;
 		labels[j].pos = i;
+		j++;
 	}
 
 	qsort(labels, labelcnt, sizeof(struct Label), (int (*)(const void*, const void*))compare_labels);
