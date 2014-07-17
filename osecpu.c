@@ -95,6 +95,12 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 
 			if (!IS_VALID_PREGISTER_ID(inst->arg.plimm.p)) goto invalid_argument_error;
 			break;
+		case CND:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.cnd.r);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_REGISTER_ID(inst->arg.cnd.r)) goto invalid_argument_error;
+			break;
 		case LIDR:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lidr.imm);
 			if (ret == 0) goto fetch_b32code_error;
@@ -418,6 +424,12 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 				} else {
 					osecpu->error = ERROR_LABEL_DOES_NOT_EXIST;
 				}
+			}
+			break;
+		case CND:
+			if (!(osecpu->registers[inst->arg.cnd.r] & 1)) {
+				// Skip a next instruction
+				osecpu->pregisters[0x3f]++;
 			}
 			break;
 		case LIDR:

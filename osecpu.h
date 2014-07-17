@@ -71,6 +71,10 @@ struct Instruction
 		} plimm;
 		struct
 		{
+			int r;
+		} cnd;
+		struct
+		{
 			int imm;
 			int dr;
 		} lidr;

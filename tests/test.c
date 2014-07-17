@@ -32,6 +32,10 @@
 	little_to_big(val | 0x76000000), \
 	little_to_big(p | 0x76000000)
 
+#define CND(r) \
+	0x76, 0x00, 0x00, 0x04, \
+	little_to_big(r | 0x76000000)
+
 #define LIDR(r, val) \
 	0x76, 0x00, 0x00, 0xfd, \
 	0xff, 0xff, 0xf7, 0x88, \
@@ -165,6 +169,23 @@ void test_instruction_plimm()
 	struct Osecpu* osecpu;
 	osecpu = run_code(code, sizeof(code));
 	cut_assert_equal_int(0, osecpu->registers[0]);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_cnd()
+{
+	char code[] = {
+		LIMM(32, R00, -1),
+		CND(R00),
+		LIMM(32, R01, 0x12345678),
+		LIMM(32, R00, 2),
+		CND(R00),
+		LIMM(32, R02, 0x12345678)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code, sizeof(code));
+	cut_assert_equal_int(0x12345678, osecpu->registers[1]);
+	cut_assert_equal_int(0, osecpu->registers[2]);
 	free_osecpu(osecpu);
 }
 
