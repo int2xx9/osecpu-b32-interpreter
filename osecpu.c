@@ -68,6 +68,9 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 	}
 	switch (inst->id)
 	{
+		case NOP:
+			// No arguments
+			break;
 		case LB:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lb.uimm);
 			if (ret == 0) goto fetch_b32code_error;
@@ -410,6 +413,7 @@ const struct Label* get_label(struct Osecpu* osecpu, int id)
 void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 {
 	switch (inst->id) {
+		case NOP:
 		case LB:
 			// Nothing to do
 			break;

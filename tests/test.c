@@ -15,6 +15,9 @@
 	(unsigned)((val)&0x0000ff00) >>  8, \
 	(unsigned)((val)&0x000000ff) >>  0
 
+#define NOP() \
+	0x76, 0x00, 0x00, 0x00
+
 #define LB(opt, uimm) \
 	0x76, 0x00, 0x00, 0x01, \
 	little_to_big(uimm | 0x76000000), \
@@ -126,6 +129,17 @@ struct Osecpu* run_code(uint8_t code[], int len)
 	load_b32_from_memory(osecpu, code, len);
 	run_b32(osecpu);
 	return osecpu;
+}
+
+void test_instruction_nop()
+{
+	char code[] = {
+		NOP()
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code, sizeof(code));
+	cut_assert_equal_int(1, osecpu->pregisters[0x3f]);
+	free_osecpu(osecpu);
 }
 
 void test_instruction_lb()
