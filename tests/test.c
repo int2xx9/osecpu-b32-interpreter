@@ -129,6 +129,11 @@
 	0x76, 0x00, 0x00, 0x25, \
 	COMPARE_INSTRUCTION_ARGUMENTS(bit0, bit1, r0, r1, r2)
 
+#define REM(uimm, len) \
+	0x76, 0x00, 0x00, 0xfe, \
+	little_to_big(uimm | 0x76000000), \
+	little_to_big(len | 0x76000000)
+
 struct Osecpu* run_code(uint8_t code[], int len)
 {
 	struct Osecpu* osecpu;
@@ -549,6 +554,17 @@ void test_instruction_cmpg()
 
 	osecpu = run_code(code3, sizeof(code3));
 	cut_assert_equal_int(0, osecpu->registers[2]);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_rem()
+{
+	char code[] = {
+		REM(0, 0)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code, sizeof(code));
+	cut_assert_equal_int(1, osecpu->pregisters[0x3f]);
 	free_osecpu(osecpu);
 }
 

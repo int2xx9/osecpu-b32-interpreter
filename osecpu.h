@@ -98,6 +98,11 @@ struct Instruction
 			int r0;
 			int bit0;
 		} compare;
+		struct
+		{
+			int uimm;
+			int len;
+		} rem;
 	} arg;
 };
 

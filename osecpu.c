@@ -168,6 +168,12 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r0)) goto invalid_argument_error;
 			if (inst->arg.compare.bit0 != 0x20) goto invalid_argument_error;
 			break;
+		case REM:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.uimm);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.len);
+			if (ret == 0) goto fetch_b32code_error;
+			break;
 		default:
 			*error = ERROR_INVALID_INSTRUCTION;
 			return 0;
@@ -424,6 +430,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 	switch (inst->id) {
 		case NOP:
 		case LB:
+		case REM:
 			// Nothing to do
 			break;
 		case LIMM:
