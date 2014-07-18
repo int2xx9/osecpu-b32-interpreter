@@ -87,6 +87,11 @@ struct Instruction
 		} operate;
 		struct
 		{
+			int p0;
+			int p1;
+		} pcp;
+		struct
+		{
 			int r1;
 			int r2;
 			int bit1;

@@ -136,6 +136,15 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r0)) goto invalid_argument_error;
 			if (inst->arg.operate.bit != 0x20) goto invalid_argument_error;
 			break;
+		case PCP:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.pcp.p1);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.pcp.p0);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_PREGISTER_ID(inst->arg.pcp.p1)) goto invalid_argument_error;
+			if (!IS_VALID_PREGISTER_ID(inst->arg.pcp.p0)) goto invalid_argument_error;
+			break;
 		case CMPE:
 		case CMPNE:
 		case CMPL:
@@ -450,6 +459,9 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case DIV:
 		case MOD:
 			do_operate_instruction(osecpu, inst);
+			break;
+		case PCP:
+			osecpu->pregisters[inst->arg.pcp.p0] = osecpu->pregisters[inst->arg.pcp.p1];
 			break;
 		case CMPE:
 		case CMPNE:

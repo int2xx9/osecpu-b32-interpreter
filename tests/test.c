@@ -5,6 +5,8 @@
 #define R01 1
 #define R02 2
 
+#define P00 0
+#define P01 1
 #define P3F 0x3f
 
 #define DR0 0
@@ -90,6 +92,11 @@
 #define MOD(bit, r0, r1, r2) \
 	0x76, 0x00, 0x00, 0x1b, \
 	OPERATE_INSTRUCTION_ARGUMENTS(bit, r0, r1, r2)
+
+#define PCP(p0, p1) \
+	0x76, 0x00, 0x00, 0x1e, \
+	little_to_big(p1 | 0x76000000), \
+	little_to_big(p0 | 0x76000000)
 
 #define COMPARE_INSTRUCTION_ARGUMENTS(bit0, bit1, r0, r1, r2) \
 	0x76, 0x00, 0x00, (char)r1, \
@@ -361,6 +368,19 @@ void test_instruction_mod()
 	// division_by_zero_error
 	osecpu = run_code(code2, sizeof(code2));
 	cut_assert_equal_int(ERROR_DIVISION_BY_ZERO, osecpu->error);
+	free_osecpu(osecpu);
+}
+
+void test_instruction_pcp()
+{
+	char code[] = {
+		PLIMM(P00, 0),
+		PCP(P01, P00),
+		LB(0, 0)
+	};
+	struct Osecpu* osecpu;
+	osecpu = run_code(code, sizeof(code));
+	cut_assert_equal_int(2, osecpu->pregisters[1]);
 	free_osecpu(osecpu);
 }
 
