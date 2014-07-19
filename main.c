@@ -36,6 +36,18 @@ int main(int argc, char** argv)
 		case ERROR_DIVISION_BY_ZERO:
 			fprintf(stderr, "Error: division by zero error\n");
 			break;
+		case ERROR_INVALID_B32_CODE:
+			fprintf(stderr, "Error: invalid b32 code error\n");
+			break;
+		case ERROR_UNEXPECTED_EOC:
+			fprintf(stderr, "Error: unexpected end of code\n");
+			break;
+		case ERROR_LABEL_DOES_NOT_EXIST:
+			fprintf(stderr, "Error: a label doesn't exist\n");
+			break;
+		case ERROR_NOT_IMPLEMENTED_API:
+			fprintf(stderr, "Error: not implemented api\n");
+			break;
 	}
 
 	coredump(osecpu);
