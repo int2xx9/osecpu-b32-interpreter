@@ -1,9 +1,11 @@
 #include "osecpu.h"
+#include "api.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
 
+#define LABEL_API 0xffffffff
 #define B32_SIGNATURE "\x05\xe2\x00\xcf\xee\x7f\xf1\x88"
 
 struct Osecpu* init_osecpu()
@@ -12,6 +14,8 @@ struct Osecpu* init_osecpu()
 	osecpu = (struct Osecpu*)malloc(sizeof(struct Osecpu));
 	if (!osecpu) return NULL;
 	memset(osecpu, 0, sizeof(struct Osecpu));
+	// a pointer to call APIs
+	osecpu->pregisters[0x2f] = LABEL_API;
 	return osecpu;
 }
 
@@ -492,6 +496,7 @@ invalid_argument_error:
 struct Instruction* fetch_instruction(struct Osecpu* osecpu)
 {
 	const int pc = osecpu->pregisters[0x3f];
+	if (pc == LABEL_API) return NULL;
 	if (osecpu->pregisters[0x3f]+1 > osecpu->codelen) return 0;
 	osecpu->pregisters[0x3f]++;
 	return &osecpu->code[pc];
@@ -502,8 +507,12 @@ int run_b32(struct Osecpu* osecpu)
 	struct Instruction* inst;
 	while (1) {
 		inst = fetch_instruction(osecpu);
-		if (!inst) break;
-		do_instruction(osecpu, inst);
+		if (!inst) {
+			if (osecpu->pregisters[0x3f] != LABEL_API) break;
+			call_api(osecpu);
+		} else {
+			do_instruction(osecpu, inst);
+		}
 		if (osecpu->error != 0) return -1;
 	}
 	return 0;
