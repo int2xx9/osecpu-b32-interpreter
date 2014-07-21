@@ -1,5 +1,6 @@
 #include "osecpu.h"
 #include "api.h"
+#include "window.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,6 +24,7 @@ void free_osecpu(struct Osecpu* osecpu)
 {
 	if (osecpu->code) free(osecpu->code);
 	if (osecpu->labels) free(osecpu->labels);
+	if (osecpu->window) window_free(osecpu->window);
 	free(osecpu);
 }
 
@@ -81,7 +83,7 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lb.opt);
 			if (ret == 0) goto fetch_b32code_error;
 
-			if (inst->arg.lb.opt < 0 || inst->arg.lb.opt > 2) goto invalid_argument_error;
+			if (inst->arg.lb.opt < 0 || inst->arg.lb.opt > 3) goto invalid_argument_error;
 			break;
 		case LIMM:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.limm.imm);
@@ -175,8 +177,30 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 		case REM:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.uimm);
 			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.len);
-			if (ret == 0) goto fetch_b32code_error;
+			switch (inst->arg.rem.uimm)
+			{
+				case 0:
+					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem0.arg1);
+					if (ret == 0) goto fetch_b32code_error;
+					break;
+				case 1:
+					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem1.arg1);
+					if (ret == 0) goto fetch_b32code_error;
+					break;
+				case 2:
+					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem2.arg1);
+					if (ret == 0) goto fetch_b32code_error;
+					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem2.arg2);
+					if (ret == 0) goto fetch_b32code_error;
+					break;
+				case 3:
+					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem3.arg1);
+					if (ret == 0) goto fetch_b32code_error;
+					break;
+				default:
+					*error = ERROR_INVALID_INSTRUCTION;
+					return 0;
+			}
 			break;
 		default:
 			*error = ERROR_INVALID_INSTRUCTION;

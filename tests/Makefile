@@ -17,5 +17,5 @@ clean:
 	$(RM) test.so
 
 $(TARGET): $(SOURCE)
-	$(CC) -shared -fPIC -o $(TARGET) $(SOURCE) `pkg-config --cflags --libs cutter`
+	$(CC) `pkg-config --cflags --libs gtk+-2.0` -shared -fPIC -o $(TARGET) $(SOURCE) `pkg-config --cflags --libs cutter`
 

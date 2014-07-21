@@ -99,10 +99,26 @@ struct Instruction
 			int r0;
 			int bit0;
 		} compare;
-		struct
+		union
 		{
 			int uimm;
-			int len;
+			struct
+			{
+				int arg1;
+			} rem0;
+			struct
+			{
+				int arg1;
+			} rem1;
+			struct
+			{
+				int arg1;
+				int arg2;
+			} rem2;
+			struct
+			{
+				int arg1;
+			} rem3;
 		} rem;
 	} arg;
 };
@@ -123,6 +139,7 @@ struct Osecpu
 	struct Label* labels;
 	int labelcnt;
 	int error;
+	struct OsecpuWindow* window;
 };
 
 struct Osecpu* init_osecpu();
