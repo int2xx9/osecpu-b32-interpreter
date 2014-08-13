@@ -176,7 +176,6 @@ void window_fill_oval(struct OsecpuWindow* window, int color, int x, int y, int 
 
 	pthread_mutex_lock(&window->surface_mutex);
 
-	printf("api_fillOval(%x, %d, %d, %d, %d)\n", color, width, height, x, y);
 	cr = cairo_create(window->surface);
 	cairo_set_source_rgb(cr, r, g, b);
 	cairo_save(cr);
