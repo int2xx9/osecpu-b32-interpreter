@@ -48,6 +48,7 @@ void api0010_openWin(struct Osecpu* osecpu)
 
 	// TODO: 既に初期化されていないかチェック
 	osecpu->window = window_create(width, height);
+	window_fill_rect(osecpu->window, 0, 0, 0, width, height);
 }
 
 void api0010_openWin_default(struct Osecpu* osecpu)
