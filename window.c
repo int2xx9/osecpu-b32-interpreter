@@ -131,6 +131,15 @@ void window_free(struct OsecpuWindow* window)
 	free(window);
 }
 
+void window_redraw(struct OsecpuWindow* window)
+{
+	struct WindowQueue* qdata;
+	qdata = (struct WindowQueue*)malloc(sizeof(struct WindowQueue));
+	if (!qdata) return;
+	qdata->type = QUEUE_REDRAW;
+	g_async_queue_push(window->queue, qdata);
+}
+
 void window_fill_rect(struct OsecpuWindow* window, int color, int x, int y, int width, int height)
 {
 	struct WindowQueue* qdata;
@@ -149,11 +158,7 @@ void window_fill_rect(struct OsecpuWindow* window, int color, int x, int y, int 
 
 	pthread_mutex_unlock(&window->surface_mutex);
 
-	// redraw a window
-	qdata = (struct WindowQueue*)malloc(sizeof(struct WindowQueue));
-	if (!qdata) return;
-	qdata->type = QUEUE_REDRAW;
-	g_async_queue_push(window->queue, qdata);
+	window_redraw(window);
 }
 
 void window_draw_point(struct OsecpuWindow* window, int color, int x, int y)
@@ -183,10 +188,6 @@ void window_fill_oval(struct OsecpuWindow* window, int color, int x, int y, int 
 
 	pthread_mutex_unlock(&window->surface_mutex);
 
-	// redraw a window
-	qdata = (struct WindowQueue*)malloc(sizeof(struct WindowQueue));
-	if (!qdata) return;
-	qdata->type = QUEUE_REDRAW;
-	g_async_queue_push(window->queue, qdata);
+	window_redraw(window);
 }
 
