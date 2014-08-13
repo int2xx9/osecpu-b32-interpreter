@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define swap_vars(type, a, b) do { type tmp = a; a = b; b = tmp; } while(0)
+
 struct WindowQueue
 {
 	enum
@@ -140,6 +142,18 @@ void window_redraw(struct OsecpuWindow* window)
 	g_async_queue_push(window->queue, qdata);
 }
 
+int window_get_pixel_color(struct OsecpuWindow* window, int x, int y)
+{
+	// XXX: 必ずARGB32形式であると仮定して処理が書いてある
+	// 透過はされてないはずなので上位8bitは必ず0になるようにする
+	const unsigned char* surface_data;
+	int width;
+	width = cairo_image_surface_get_width(window->surface);
+	cairo_surface_flush(window->surface);
+	surface_data = cairo_image_surface_get_data(window->surface);
+	return *((int*)surface_data + x + y*width) & 0x00ffffff;
+}
+
 void window_fill_rect(struct OsecpuWindow* window, int color, int x, int y, int width, int height)
 {
 	struct WindowQueue* qdata;
@@ -189,5 +203,77 @@ void window_fill_oval(struct OsecpuWindow* window, int color, int x, int y, int 
 	pthread_mutex_unlock(&window->surface_mutex);
 
 	window_redraw(window);
+}
+
+void window_draw_line(struct OsecpuWindow* window, int color, int from_x, int from_y, int to_x, int to_y)
+{
+	int st, x, dx, dy, e, ys, y;
+	st = fabs(to_y-from_y) > fabs(to_x-from_x);
+	if (st) {
+		swap_vars(int, from_x, from_y);
+		swap_vars(int, to_x, to_y);
+	}
+	if (from_x > to_x) {
+		swap_vars(int, from_x, to_x);
+		swap_vars(int, from_y, to_y);
+	}
+	dx = to_x - from_x;
+	dy = fabs(to_y - from_y);
+	e = dx / 2;
+	y = from_y;
+	if (from_y < to_y) {
+		ys = 1;
+	} else {
+		ys = -1;
+	}
+	for (x = from_x; x <= to_x; x++)
+	{
+		if (st) {
+			window_draw_point(window, color, y, x);
+		} else {
+			window_draw_point(window, color, x, y);
+		}
+		e -= dy;
+		if (e < 0) {
+			y += ys;
+			e += dx;
+		}
+	}
+}
+
+void window_draw_line_xor(struct OsecpuWindow* window, int color, int from_x, int from_y, int to_x, int to_y)
+{
+	int st, x, dx, dy, e, ys, y;
+	st = fabs(to_y-from_y) > fabs(to_x-from_x);
+	if (st) {
+		swap_vars(int, from_x, from_y);
+		swap_vars(int, to_x, to_y);
+	}
+	if (from_x > to_x) {
+		swap_vars(int, from_x, to_x);
+		swap_vars(int, from_y, to_y);
+	}
+	dx = to_x - from_x;
+	dy = fabs(to_y - from_y);
+	e = dx / 2;
+	y = from_y;
+	if (from_y < to_y) {
+		ys = 1;
+	} else {
+		ys = -1;
+	}
+	for (x = from_x; x <= to_x; x++)
+	{
+		if (st) {
+			window_draw_point(window, window_get_pixel_color(window, y, x) ^ color, y, x);
+		} else {
+			window_draw_point(window, window_get_pixel_color(window, x, y) ^ color, x, y);
+		}
+		e -= dy;
+		if (e < 0) {
+			y += ys;
+			e += dx;
+		}
+	}
 }
 

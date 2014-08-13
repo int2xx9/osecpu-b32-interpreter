@@ -6,9 +6,11 @@
 
 #define MODE_COL3	0
 #define MODE_COL24	3
+#define MODE_XOR	0x08
 
 #define API_OPENWIN		0x0010
 #define API_DRAWPOINT	0x0002
+#define API_DRAWLINE	0x0003
 #define API_FILLRECT	0x0004
 #define API_FILLOVAL	0x0005
 #define API_SLEEP		0x0009
@@ -73,6 +75,24 @@ void api0002_drawPoint(struct Osecpu* osecpu)
 	window_draw_point(osecpu->window, color, x, y);
 }
 
+void api0003_drawLine(struct Osecpu* osecpu)
+{
+	const int mode = osecpu->registers[0x31];
+	const int color = osecpu->registers[0x32];
+	const int from_x = osecpu->registers[0x33];
+	const int from_y = osecpu->registers[0x34];
+	const int to_x = osecpu->registers[0x35];
+	const int to_y = osecpu->registers[0x36];
+	if (!osecpu->window) {
+		api0010_openWin_default(osecpu);
+	}
+	if (mode == MODE_XOR) {
+		//printf("x:%d y:%d tx:%d ty:%d col:%x colorg:%d\n", from_x, from_y, to_x, to_y, get_color(osecpu, mode&~MODE_XOR, color), color);
+		window_draw_line_xor(osecpu->window, get_color(osecpu, mode&~MODE_XOR, color), from_x, from_y, to_x, to_y);
+		//api_drawLine(MODE_XOR, 3, x,   0,   0, 479);
+	}
+}
+
 void api0004_fillRect(struct Osecpu* osecpu)
 {
 	const int mode = osecpu->registers[0x31];
@@ -123,6 +143,9 @@ void call_api(struct Osecpu* osecpu)
 			break;
 		case API_DRAWPOINT:
 			api0002_drawPoint(osecpu);
+			break;
+		case API_DRAWLINE:
+			api0003_drawLine(osecpu);
 			break;
 		case API_FILLRECT:
 			api0004_fillRect(osecpu);
