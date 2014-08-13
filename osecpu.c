@@ -180,6 +180,26 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r0)) goto invalid_argument_error;
 			if (inst->arg.compare.bit0 != 0x20) goto invalid_argument_error;
 			break;
+		case DATA:
+			{
+				int i;
+				int dummy;
+				inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.data.typ);
+				if (ret == 0) goto fetch_b32code_error;
+				inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.data.len);
+				if (ret == 0) goto fetch_b32code_error;
+
+				if (inst->arg.data.typ != 6) goto invalid_argument_error;
+
+				inst->arg.data.codepos = base+inc;
+
+				// あとで読み込むのでここでは読み飛ばす
+				for (i = 0; i < inst->arg.data.len; i++) {
+					inc += ret = fetch_b32code(code, base+inc, len, &dummy);
+					if (ret == 0) goto fetch_b32code_error;
+				}
+			}
+			break;
 		case REM:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.uimm);
 			if (ret == 0) goto fetch_b32code_error;
@@ -200,6 +220,10 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 					if (ret == 0) goto fetch_b32code_error;
 					break;
 				case 3:
+					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem3.arg1);
+					if (ret == 0) goto fetch_b32code_error;
+					break;
+				case 4:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem3.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
@@ -246,9 +270,9 @@ int count_instructions(const uint8_t* code, const int len, int* error)
 }
 
 int compare_labels(const struct Label* a, const struct Label* b) { return a->id > b->id; }
-int prepare_labels(struct Osecpu* osecpu)
+int prepare_labels(struct Osecpu* osecpu, const unsigned char* code)
 {
-	int i, j;
+	int i, j, k;
 	int labelcnt;
 	struct Label* labels;
 
@@ -267,6 +291,16 @@ int prepare_labels(struct Osecpu* osecpu)
 		if (osecpu->code[i].id != LB) continue;
 		labels[j].id = osecpu->code[i].arg.lb.uimm;
 		labels[j].pos = i;
+		labels[j].data = NULL;
+		if (i+1 <= osecpu->codelen && osecpu->code[i+1].id == DATA) {
+			// store data if next instruction is data
+			labels[j].datalen = osecpu->code[i+1].arg.data.len;
+			labels[j].data = (int*)malloc(labels[j].datalen * sizeof(int));
+			if (!labels[j].data) return 0;
+			for (k = 0; k < labels[j].datalen; k++) {
+				labels[j].data[k] = ((int*)code)[osecpu->code[i+1].arg.data.codepos];
+			}
+		}
 		j++;
 	}
 
@@ -301,7 +335,7 @@ int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len)
 
 	osecpu->codelen = instcnt;
 
-	if (!prepare_labels(osecpu)) return 0;
+	if (!prepare_labels(osecpu, code)) return 0;
 
 	return 1;
 }
@@ -465,6 +499,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case NOP:
 		case LB:
 		case REM:
+		case DATA:
 			// Nothing to do
 			break;
 		case LIMM:

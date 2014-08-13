@@ -69,6 +69,7 @@ enum InstructionId
 	CMPG	= 0x25,
 	TSTZ	= 0x26,
 	TSTNZ	= 0x27,
+	DATA	= 0x2e,
 	LIDR	= 0xfd,
 	REM		= 0xfe,
 };
@@ -123,6 +124,12 @@ struct Instruction
 			int r0;
 			int bit0;
 		} compare;
+		struct
+		{
+			int typ;
+			int len;
+			int codepos;
+		} data;
 		union
 		{
 			int uimm;
@@ -151,6 +158,9 @@ struct Label
 {
 	int id;
 	int pos;
+	// XXX: DATA関係の変数を別の場所に移動したい (データかどうかのフラグだけ保持したい)
+	int* data;
+	int datalen;
 };
 
 struct Osecpu
