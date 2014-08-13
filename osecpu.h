@@ -13,6 +13,28 @@
 #define ERROR_INVALID_MODE			8
 #define ERROR_INVALID_COLOR			9
 
+static const char* ErrorMessages[] = {
+	"",
+	// ERROR_INVALID_INSTRUCTION
+	"invalid Instruction error",
+	// ERROR_INVALID_ARGUMENT
+	"invalid argument error",
+	// ERROR_DIVISION_BY_ZERO
+	"division by zero error",
+	// ERROR_INVALID_B32_CODE
+	"invalid b32 code error",
+	// ERROR_UNEXPECTED_EOC
+	"unexpected end of code",
+	// ERROR_LABEL_DOES_NOT_EXIST
+	"a label doesn't exist",
+	// ERROR_NOT_IMPLEMENTED_API
+	"not implemented api",
+	// ERROR_INVALID_MODE
+	"invalid mode",
+	// ERROR_INVALID_COLOR
+	"invalid color",
+};
+
 #define IS_VALID_REGISTER_ID(regid) ((regid) >= 0 && (regid) <= 0x3f)
 #define IS_VALID_PREGISTER_ID(regid) ((regid) >= 0 && (regid) <= 0x3f)
 #define IS_VALID_DREGISTER_ID(regid) ((regid) >= 0 && (regid) <= 4)
@@ -144,6 +166,7 @@ struct Osecpu
 	struct OsecpuWindow* window;
 };
 
+const char* get_error_text(int);
 struct Osecpu* init_osecpu();
 void free_osecpu(struct Osecpu*);
 int load_b32_from_file(struct Osecpu*, const char*);

@@ -26,28 +26,8 @@ int main(int argc, char** argv)
 	}
 
 	run_b32(osecpu);
-	switch (osecpu->error) {
-		case ERROR_INVALID_INSTRUCTION:
-			fprintf(stderr, "Error: invalid instruction error\n");
-			break;
-		case ERROR_INVALID_ARGUMENT:
-			fprintf(stderr, "Error: invalid argument error\n");
-			break;
-		case ERROR_DIVISION_BY_ZERO:
-			fprintf(stderr, "Error: division by zero error\n");
-			break;
-		case ERROR_INVALID_B32_CODE:
-			fprintf(stderr, "Error: invalid b32 code error\n");
-			break;
-		case ERROR_UNEXPECTED_EOC:
-			fprintf(stderr, "Error: unexpected end of code\n");
-			break;
-		case ERROR_LABEL_DOES_NOT_EXIST:
-			fprintf(stderr, "Error: a label doesn't exist\n");
-			break;
-		case ERROR_NOT_IMPLEMENTED_API:
-			fprintf(stderr, "Error: not implemented api\n");
-			break;
+	if (osecpu->error) {
+		fprintf(stderr, "Error: %s\n", get_error_text(osecpu->error));
 	}
 
 	coredump(osecpu);

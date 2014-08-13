@@ -9,6 +9,12 @@
 #define LABEL_API 0xffffffff
 #define B32_SIGNATURE "\x05\xe2\x00\xcf\xee\x7f\xf1\x88"
 
+const char* get_error_text(int id)
+{
+	if (id < 1 || id > sizeof(ErrorMessages)/sizeof(ErrorMessages[0])) return 0;
+	return ErrorMessages[id];
+}
+
 struct Osecpu* init_osecpu()
 {
 	struct Osecpu* osecpu;
