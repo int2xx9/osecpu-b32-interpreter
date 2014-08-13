@@ -223,8 +223,8 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem3.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
-				case 4:
-					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem3.arg1);
+				case 34:
+					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem34.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
 				default:

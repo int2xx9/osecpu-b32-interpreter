@@ -150,6 +150,10 @@ struct Instruction
 			{
 				int arg1;
 			} rem3;
+			struct
+			{
+				int arg1;
+			} rem34;
 		} rem;
 	} arg;
 };
