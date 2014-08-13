@@ -10,6 +10,8 @@
 #define ERROR_UNEXPECTED_EOC		5
 #define ERROR_LABEL_DOES_NOT_EXIST	6
 #define ERROR_NOT_IMPLEMENTED_API	7
+#define ERROR_INVALID_MODE			8
+#define ERROR_INVALID_COLOR			9
 
 #define IS_VALID_REGISTER_ID(regid) ((regid) >= 0 && (regid) <= 0x3f)
 #define IS_VALID_PREGISTER_ID(regid) ((regid) >= 0 && (regid) <= 0x3f)

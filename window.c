@@ -1,4 +1,5 @@
 #include "window.h"
+#include <math.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -130,7 +131,7 @@ void window_free(struct OsecpuWindow* window)
 	free(window);
 }
 
-void window_draw_point(struct OsecpuWindow* window, int color, int x, int y)
+void window_fill_rect(struct OsecpuWindow* window, int color, int x, int y, int width, int height)
 {
 	struct WindowQueue* qdata;
 	double r = ((double)((color & 0xff0000) >> 16))/255;
@@ -142,7 +143,41 @@ void window_draw_point(struct OsecpuWindow* window, int color, int x, int y)
 
 	cr = cairo_create(window->surface);
 	cairo_set_source_rgb(cr, r, g, b);
-	cairo_rectangle(cr, x, y, 1, 1);
+	cairo_rectangle(cr, x, y, width, height);
+	cairo_fill(cr);
+	cairo_destroy(cr);
+
+	pthread_mutex_unlock(&window->surface_mutex);
+
+	// redraw a window
+	qdata = (struct WindowQueue*)malloc(sizeof(struct WindowQueue));
+	if (!qdata) return;
+	qdata->type = QUEUE_REDRAW;
+	g_async_queue_push(window->queue, qdata);
+}
+
+void window_draw_point(struct OsecpuWindow* window, int color, int x, int y)
+{
+	window_fill_rect(window, color, x, y, 1, 1);
+}
+
+void window_fill_oval(struct OsecpuWindow* window, int color, int x, int y, int width, int height)
+{
+	struct WindowQueue* qdata;
+	double r = ((double)((color & 0xff0000) >> 16))/255;
+	double g = ((double)((color & 0x00ff00) >>  8))/255;
+	double b = ((double)((color & 0x0000ff) >>  0))/255;
+	cairo_t* cr;
+
+	pthread_mutex_lock(&window->surface_mutex);
+
+	cr = cairo_create(window->surface);
+	cairo_set_source_rgb(cr, r, g, b);
+	cairo_save(cr);
+	cairo_translate(cr, x, y);
+	cairo_scale(cr, width/2, height/2);
+	cairo_arc(cr, 0, 0, 1.0, 0, M_PI*2);
+	cairo_restore(cr);
 	cairo_fill(cr);
 	cairo_destroy(cr);
 
