@@ -87,9 +87,7 @@ void api0003_drawLine(struct Osecpu* osecpu)
 		api0010_openWin_default(osecpu);
 	}
 	if (mode == MODE_XOR) {
-		//printf("x:%d y:%d tx:%d ty:%d col:%x colorg:%d\n", from_x, from_y, to_x, to_y, get_color(osecpu, mode&~MODE_XOR, color), color);
 		window_draw_line_xor(osecpu->window, get_color(osecpu, mode&~MODE_XOR, color), from_x, from_y, to_x, to_y);
-		//api_drawLine(MODE_XOR, 3, x,   0,   0, 479);
 	}
 }
 
