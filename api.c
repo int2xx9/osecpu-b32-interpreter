@@ -2,6 +2,7 @@
 #include "window.h"
 
 #include <stdio.h>
+#include <unistd.h>
 
 #define MODE_COL3	0
 #define MODE_COL24	3
@@ -10,6 +11,7 @@
 #define API_DRAWPOINT	0x0002
 #define API_FILLRECT	0x0004
 #define API_FILLOVAL	0x0005
+#define API_SLEEP		0x0009
 
 const int COL3TBL[] = {
 	0x000000, 0xff0000, 0x00ff00,
@@ -105,6 +107,13 @@ void api0005_fillOval(struct Osecpu* osecpu)
 	}
 }
 
+void api0009_sleep(struct Osecpu* osecpu)
+{
+	const int opt = osecpu->registers[0x31];
+	const int msec = osecpu->registers[0x32];
+	usleep(msec*1000);
+}
+
 void call_api(struct Osecpu* osecpu)
 {
 	switch (osecpu->registers[0x30])
@@ -120,6 +129,9 @@ void call_api(struct Osecpu* osecpu)
 			break;
 		case API_FILLOVAL:
 			api0005_fillOval(osecpu);
+			break;
+		case API_SLEEP:
+			api0009_sleep(osecpu);
 			break;
 		default:
 			osecpu->error = ERROR_NOT_IMPLEMENTED_API;
