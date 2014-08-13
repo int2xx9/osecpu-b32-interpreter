@@ -92,7 +92,7 @@ void api0005_fillOval(struct Osecpu* osecpu)
 	const int mode = osecpu->registers[0x31];
 	const int color = osecpu->registers[0x32];
 	const int width = osecpu->registers[0x33];
-	const int height = osecpu->registers[0x34];
+	const int height = (osecpu->registers[0x34] == 0) ? width : osecpu->registers[0x34];
 	const int x = osecpu->registers[0x35];
 	const int y = osecpu->registers[0x36];
 	const int drawcolor = get_color(osecpu, mode, color);
