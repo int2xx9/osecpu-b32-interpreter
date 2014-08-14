@@ -546,8 +546,13 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 			{
 				const struct Label* label = get_label(osecpu, inst->arg.plimm.uimm);
 				if (label) {
-					osecpu->pregisters[inst->arg.plimm.p].type = CODE;
-					osecpu->pregisters[inst->arg.plimm.p].p.code = label->pos;
+					if (label->data) {
+						osecpu->pregisters[inst->arg.plimm.p].type = SINT32;
+						osecpu->pregisters[inst->arg.plimm.p].p.sint32 = label->data;
+					} else {
+						osecpu->pregisters[inst->arg.plimm.p].type = CODE;
+						osecpu->pregisters[inst->arg.plimm.p].p.code = label->pos;
+					}
 				} else {
 					osecpu->error = ERROR_LABEL_DOES_NOT_EXIST;
 				}
@@ -562,7 +567,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case LMEM:
 			{
 				const struct OsecpuPointer* p = &osecpu->pregisters[inst->arg.lmem.p];
-				if (p->type == DATA) {
+				if (p->type == SINT32) {
 					osecpu->registers[inst->arg.lmem.r] = *p->p.sint32;
 				} else {
 					osecpu->error = ERROR_INVALID_LABEL_TYPE;
@@ -636,7 +641,7 @@ void initialize_osecpu(struct Osecpu* osecpu)
 	for (i = j = 0; i < osecpu->labelcnt; i++) {
 		if (osecpu->labels[i].data) {
 			j++;
-			osecpu->pregisters[j].type = DATA;
+			osecpu->pregisters[j].type = SINT32;
 			osecpu->pregisters[j].p.sint32 = osecpu->labels[i].data;
 			if (j >= 4) break; 
 		}
