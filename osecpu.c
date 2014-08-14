@@ -137,6 +137,24 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (!IS_VALID_REGISTER_ID(inst->arg.lmem.r)) goto invalid_argument_error;
 			if (inst->arg.lmem.bit != 0x20) goto invalid_argument_error;
 			break;
+		case PADD:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.p1);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.typ);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.r);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.bit);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.p0);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_PREGISTER_ID(inst->arg.padd.p1)) goto invalid_argument_error;
+			if (inst->arg.padd.typ != 3) goto invalid_argument_error;
+			if (!IS_VALID_REGISTER_ID(inst->arg.padd.r)) goto invalid_argument_error;
+			if (inst->arg.padd.bit != 0x20) goto invalid_argument_error;
+			if (!IS_VALID_PREGISTER_ID(inst->arg.padd.p0)) goto invalid_argument_error;
+			break;
 		case LIDR:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lidr.imm);
 			if (ret == 0) goto fetch_b32code_error;
@@ -548,6 +566,19 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 					osecpu->registers[inst->arg.lmem.r] = *p->p.sint32;
 				} else {
 					osecpu->error = ERROR_INVALID_LABEL_TYPE;
+				}
+			}
+			break;
+		case PADD:
+			// TODO: オーバーフロー確認
+			{
+				struct OsecpuPointer* p0 = &osecpu->pregisters[inst->arg.padd.p0];
+				const struct OsecpuPointer* p1 = &osecpu->pregisters[inst->arg.padd.p1];
+				const int r = osecpu->registers[inst->arg.padd.r];
+				switch (p1->type) {
+					case CODE: *p0 = *p1; p0->p.code++; break;
+					case SINT32: *p0 = *p1; p0->p.sint32++; break;
+					default: osecpu->error = ERROR_INVALID_LABEL_TYPE; break;
 				}
 			}
 			break;

@@ -112,6 +112,14 @@ struct Instruction
 		} lmem;
 		struct
 		{
+			int bit;
+			int p0;
+			int typ;
+			int p1;
+			int r;
+		} padd;
+		struct
+		{
 			int imm;
 			int dr;
 		} lidr;
