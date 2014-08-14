@@ -241,6 +241,42 @@ void window_draw_line(struct OsecpuWindow* window, int color, int from_x, int fr
 	}
 }
 
+void window_draw_line_or(struct OsecpuWindow* window, int color, int from_x, int from_y, int to_x, int to_y)
+{
+	int st, x, dx, dy, e, ys, y;
+	st = fabs(to_y-from_y) > fabs(to_x-from_x);
+	if (st) {
+		swap_vars(int, from_x, from_y);
+		swap_vars(int, to_x, to_y);
+	}
+	if (from_x > to_x) {
+		swap_vars(int, from_x, to_x);
+		swap_vars(int, from_y, to_y);
+	}
+	dx = to_x - from_x;
+	dy = fabs(to_y - from_y);
+	e = dx / 2;
+	y = from_y;
+	if (from_y < to_y) {
+		ys = 1;
+	} else {
+		ys = -1;
+	}
+	for (x = from_x; x <= to_x; x++)
+	{
+		if (st) {
+			window_draw_point(window, window_get_pixel_color(window, y, x) | color, y, x);
+		} else {
+			window_draw_point(window, window_get_pixel_color(window, x, y) | color, x, y);
+		}
+		e -= dy;
+		if (e < 0) {
+			y += ys;
+			e += dx;
+		}
+	}
+}
+
 void window_draw_line_xor(struct OsecpuWindow* window, int color, int from_x, int from_y, int to_x, int to_y)
 {
 	int st, x, dx, dy, e, ys, y;

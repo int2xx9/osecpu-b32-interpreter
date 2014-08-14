@@ -23,6 +23,7 @@ void window_draw_point(struct OsecpuWindow*, int, int, int);
 void window_fill_rect(struct OsecpuWindow*, int, int, int, int, int);
 void window_fill_oval(struct OsecpuWindow*, int, int, int, int, int);
 void window_draw_line(struct OsecpuWindow*, int, int, int, int, int);
+void window_draw_line_or(struct OsecpuWindow*, int, int, int, int, int);
 void window_draw_line_xor(struct OsecpuWindow*, int, int, int, int, int);
 
 #endif

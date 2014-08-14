@@ -6,6 +6,14 @@
 #include <string.h>
 #include <inttypes.h>
 
+#define BIG_TO_LITTLE(val) \
+	( \
+		(unsigned)((val)&0xff000000) >> 24 | \
+		(unsigned)((val)&0x00ff0000) >>  8 | \
+		(unsigned)((val)&0x0000ff00) <<  8 | \
+		(unsigned)((val)&0x000000ff) << 24 \
+	)
+
 #define LABEL_API 0xffffffff
 #define B32_SIGNATURE "\x05\xe2\x00\xcf\xee\x7f\xf1\x88"
 
@@ -335,7 +343,8 @@ int prepare_labels(struct Osecpu* osecpu, const unsigned char* code)
 			labels[j].data = (int*)malloc(labels[j].datalen * sizeof(int));
 			if (!labels[j].data) return 0;
 			for (k = 0; k < labels[j].datalen; k++) {
-				labels[j].data[k] = ((int*)code)[osecpu->code[i+1].arg.data.codepos];
+				int* base = (int*)((unsigned char*)code + osecpu->code[i+1].arg.data.codepos);
+				labels[j].data[k] = BIG_TO_LITTLE(base[k]);
 			}
 		}
 		j++;
