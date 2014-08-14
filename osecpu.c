@@ -499,7 +499,19 @@ void coredump(struct Osecpu* osecpu)
 
 	printf("Labels:\n");
 	for (i = 0; i < osecpu->labelcnt; i++) {
-		printf("%06x: %08x\n", osecpu->labels[i].id, osecpu->labels[i].pos);
+		printf("%06x: %08x", osecpu->labels[i].id, osecpu->labels[i].pos);
+		if (osecpu->labels[i].data) {
+			printf(" (data)\n");
+			printf("          |00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f\n");
+			printf("  --------+-----------------------------------------------");
+			for (j = 0; j < osecpu->labels[i].datalen; j++) {
+				if (j == 0 || j%16 == 0) {
+					printf("\n  %08x|", j);
+				}
+				printf("%02x ", osecpu->labels[i].data[j]);
+			}
+		}
+		printf("\n");
 	}
 	printf("\n");
 }
