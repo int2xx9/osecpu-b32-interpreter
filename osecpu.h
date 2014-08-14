@@ -104,6 +104,14 @@ struct Instruction
 		} cnd;
 		struct
 		{
+			int bit;
+			int r;
+			int typ;
+			int p;
+			int zero;
+		} lmem;
+		struct
+		{
 			int imm;
 			int dr;
 		} lidr;

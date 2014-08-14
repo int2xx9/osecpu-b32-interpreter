@@ -119,6 +119,24 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 
 			if (!IS_VALID_REGISTER_ID(inst->arg.cnd.r)) goto invalid_argument_error;
 			break;
+		case LMEM:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.p);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.typ);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.zero);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.r);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.bit);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_PREGISTER_ID(inst->arg.lmem.p)) goto invalid_argument_error;
+			if (inst->arg.lmem.typ != 3) goto invalid_argument_error;
+			if (inst->arg.lmem.zero != 0) goto invalid_argument_error;
+			if (!IS_VALID_REGISTER_ID(inst->arg.lmem.r)) goto invalid_argument_error;
+			if (inst->arg.lmem.bit != 0x20) goto invalid_argument_error;
+			break;
 		case LIDR:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lidr.imm);
 			if (ret == 0) goto fetch_b32code_error;
@@ -528,6 +546,16 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 				osecpu->pregisters[0x3f].p.code++;
 			}
 			break;
+		case LMEM:
+			{
+				const struct OsecpuPointer* p = &osecpu->pregisters[inst->arg.lmem.p];
+				if (p->type == DATA) {
+					osecpu->registers[inst->arg.lmem.r] = *p->p.sint32;
+				} else {
+					osecpu->error = ERROR_INVALID_LABEL_TYPE;
+				}
+			}
+			break;
 		case LIDR:
 			osecpu->dregisters[inst->arg.lidr.dr] = inst->arg.lidr.imm;
 			break;
@@ -574,9 +602,28 @@ struct Instruction* fetch_instruction(struct Osecpu* osecpu)
 	return &osecpu->code[pc];
 }
 
+void initialize_osecpu(struct Osecpu* osecpu)
+{
+	int i, j;
+
+	// initialize P01〜P04
+	for (i = j = 0; i < osecpu->labelcnt; i++) {
+		if (osecpu->labels[i].data) {
+			j++;
+			osecpu->pregisters[j].type = DATA;
+			osecpu->pregisters[j].p.sint32 = osecpu->labels[i].data;
+			if (j >= 4) break; 
+		}
+	}
+}
+
 int run_b32(struct Osecpu* osecpu)
 {
 	struct Instruction* inst;
+
+	// TODO: ブレーク機能とかはまだついてないのでとりあえずここで初期化する
+	initialize_osecpu(osecpu);
+
 	while (1) {
 		inst = fetch_instruction(osecpu);
 		if (!inst) {
