@@ -12,6 +12,7 @@
 #define ERROR_NOT_IMPLEMENTED_API	7
 #define ERROR_INVALID_MODE			8
 #define ERROR_INVALID_COLOR			9
+#define ERROR_INVALID_LABEL_TYPE	10
 
 static const char* ErrorMessages[] = {
 	"",
@@ -33,6 +34,8 @@ static const char* ErrorMessages[] = {
 	"invalid mode",
 	// ERROR_INVALID_COLOR
 	"invalid color",
+	// ERROR_INVALID_LABEL_TYPE
+	"invalid label type",
 };
 
 #define IS_VALID_REGISTER_ID(regid) ((regid) >= 0 && (regid) <= 0x3f)
@@ -167,10 +170,27 @@ struct Label
 	int datalen;
 };
 
+enum OsecpuPointerType
+{
+	NOT_INITIAlIZED,
+	CODE,
+	SINT32,
+};
+
+struct OsecpuPointer
+{
+	enum OsecpuPointerType type;
+	union
+	{
+		int* sint32;
+		int code;
+	} p;
+};
+
 struct Osecpu
 {
 	int registers[0x40];
-	int pregisters[0x40];
+	struct OsecpuPointer pregisters[0x40];
 	int dregisters[4];
 	struct Instruction* code;
 	int codelen;

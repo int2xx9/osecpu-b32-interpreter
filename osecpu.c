@@ -21,8 +21,11 @@ struct Osecpu* init_osecpu()
 	osecpu = (struct Osecpu*)malloc(sizeof(struct Osecpu));
 	if (!osecpu) return NULL;
 	memset(osecpu, 0, sizeof(struct Osecpu));
+	// instruction pointer
+	osecpu->pregisters[0x3f].type = CODE;
 	// a pointer to call APIs
-	osecpu->pregisters[0x2f] = LABEL_API;
+	osecpu->pregisters[0x2f].type = CODE;
+	osecpu->pregisters[0x2f].p.code = LABEL_API;
 	return osecpu;
 }
 
@@ -418,10 +421,10 @@ void coredump(struct Osecpu* osecpu)
 	i = 0;
 	while (i < 0x40/4) {
 		printf("P%02X: %08X\tP%02X: %08X\tP%02X: %08X\tP%02X: %08X\n"
-				, i+16*0, osecpu->pregisters[i+16*0]
-				, i+16*1, osecpu->pregisters[i+16*1]
-				, i+16*2, osecpu->pregisters[i+16*2]
-				, i+16*3, osecpu->pregisters[i+16*3]
+				, i+16*0, osecpu->pregisters[i+16*0].p.code
+				, i+16*1, osecpu->pregisters[i+16*1].p.code
+				, i+16*2, osecpu->pregisters[i+16*2].p.code
+				, i+16*3, osecpu->pregisters[i+16*3].p.code
 			  );
 		i++;
 	}
@@ -509,7 +512,11 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 			{
 				const struct Label* label = get_label(osecpu, inst->arg.plimm.uimm);
 				if (label) {
-					osecpu->pregisters[inst->arg.plimm.p] = label->pos;
+					if (osecpu->pregisters[inst->arg.plimm.p].type == CODE) {
+						osecpu->pregisters[inst->arg.plimm.p].p.code = label->pos;
+					} else {
+						osecpu->error = ERROR_INVALID_LABEL_TYPE;
+					}
 				} else {
 					osecpu->error = ERROR_LABEL_DOES_NOT_EXIST;
 				}
@@ -518,7 +525,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case CND:
 			if (!(osecpu->registers[inst->arg.cnd.r] & 1)) {
 				// Skip a next instruction
-				osecpu->pregisters[0x3f]++;
+				osecpu->pregisters[0x3f].p.code++;
 			}
 			break;
 		case LIDR:
@@ -560,10 +567,10 @@ invalid_argument_error:
 
 struct Instruction* fetch_instruction(struct Osecpu* osecpu)
 {
-	const int pc = osecpu->pregisters[0x3f];
+	const int pc = osecpu->pregisters[0x3f].p.code;
 	if (pc == LABEL_API) return NULL;
-	if (osecpu->pregisters[0x3f]+1 > osecpu->codelen) return 0;
-	osecpu->pregisters[0x3f]++;
+	if (osecpu->pregisters[0x3f].p.code+1 > osecpu->codelen) return 0;
+	osecpu->pregisters[0x3f].p.code++;
 	return &osecpu->code[pc];
 }
 
@@ -573,7 +580,7 @@ int run_b32(struct Osecpu* osecpu)
 	while (1) {
 		inst = fetch_instruction(osecpu);
 		if (!inst) {
-			if (osecpu->pregisters[0x3f] != LABEL_API) break;
+			if (osecpu->pregisters[0x3f].p.code != LABEL_API) break;
 			call_api(osecpu);
 		} else {
 			do_instruction(osecpu, inst);
