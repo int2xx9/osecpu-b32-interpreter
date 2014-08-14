@@ -242,25 +242,25 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (ret == 0) goto fetch_b32code_error;
 			switch (inst->arg.rem.uimm)
 			{
-				case 0:
+				case 0x00:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem0.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
-				case 1:
+				case 0x01:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem1.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
-				case 2:
+				case 0x02:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem2.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem2.arg2);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
-				case 3:
+				case 0x03:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem3.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
-				case 34:
+				case 0x34:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem34.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
