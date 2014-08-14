@@ -132,7 +132,7 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (ret == 0) goto fetch_b32code_error;
 
 			if (!IS_VALID_PREGISTER_ID(inst->arg.lmem.p)) goto invalid_argument_error;
-			if (inst->arg.lmem.typ != 3) goto invalid_argument_error;
+			if (inst->arg.lmem.typ != 6) goto invalid_argument_error;
 			if (inst->arg.lmem.zero != 0) goto invalid_argument_error;
 			if (!IS_VALID_REGISTER_ID(inst->arg.lmem.r)) goto invalid_argument_error;
 			if (inst->arg.lmem.bit != 0x20) goto invalid_argument_error;
@@ -150,7 +150,7 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (ret == 0) goto fetch_b32code_error;
 
 			if (!IS_VALID_PREGISTER_ID(inst->arg.padd.p1)) goto invalid_argument_error;
-			if (inst->arg.padd.typ != 3) goto invalid_argument_error;
+			if (inst->arg.padd.typ != 6) goto invalid_argument_error;
 			if (!IS_VALID_REGISTER_ID(inst->arg.padd.r)) goto invalid_argument_error;
 			if (inst->arg.padd.bit != 0x20) goto invalid_argument_error;
 			if (!IS_VALID_PREGISTER_ID(inst->arg.padd.p0)) goto invalid_argument_error;
