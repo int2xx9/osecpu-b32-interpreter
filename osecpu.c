@@ -14,6 +14,23 @@
 		(unsigned)((val)&0x000000ff) << 24 \
 	)
 
+#define CHECK_NONE   0
+#define CHECK_REGID  1
+#define CHECK_PREGID 2
+#define CHECK_DREGID 3
+#define CHECK_EXPR   4
+#define B32FETCH_HELPER(toarg, type, expr) \
+	{ \
+		int ret; \
+		inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.toarg); \
+		if (ret == 0) goto fetch_b32code_error; \
+		if (type == CHECK_NONE) {} \
+		else if (type == CHECK_REGID && !IS_VALID_REGISTER_ID(inst->arg.toarg)) goto invalid_argument_error; \
+		else if (type == CHECK_PREGID && !IS_VALID_PREGISTER_ID(inst->arg.toarg)) goto invalid_argument_error; \
+		else if (type == CHECK_DREGID && !IS_VALID_DREGISTER_ID(inst->arg.toarg)) goto invalid_argument_error; \
+		else if (type == CHECK_EXPR && (expr)) goto invalid_argument_error; \
+	}
+
 #define LABEL_API 0xffffffff
 #define B32_SIGNATURE "\x05\xe2\x00\xcf\xee\x7f\xf1\x88"
 
@@ -100,99 +117,45 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			// No arguments
 			break;
 		case LB:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lb.uimm);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lb.opt);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (inst->arg.lb.opt < 0 || inst->arg.lb.opt > 3) goto invalid_argument_error;
+			B32FETCH_HELPER(lb.uimm, CHECK_NONE, 0);
+			B32FETCH_HELPER(lb.opt, CHECK_EXPR, inst->arg.lb.opt < 0 || inst->arg.lb.opt > 3);
 			break;
 		case LIMM:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.limm.imm);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.limm.r);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.limm.bit);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_REGISTER_ID(inst->arg.limm.r)) goto invalid_argument_error;
-			if (inst->arg.limm.bit != 0x20) goto invalid_argument_error;
+			B32FETCH_HELPER(limm.imm, CHECK_NONE, 0);
+			B32FETCH_HELPER(limm.r, CHECK_REGID, 0);
+			B32FETCH_HELPER(limm.bit, CHECK_EXPR, inst->arg.limm.bit != 0x20);
 			break;
 		case PLIMM:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.plimm.uimm);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.plimm.p);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_PREGISTER_ID(inst->arg.plimm.p)) goto invalid_argument_error;
+			B32FETCH_HELPER(plimm.uimm, CHECK_NONE, 0);
+			B32FETCH_HELPER(plimm.p, CHECK_PREGID, 0);
 			break;
 		case CND:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.cnd.r);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_REGISTER_ID(inst->arg.cnd.r)) goto invalid_argument_error;
+			B32FETCH_HELPER(cnd.r, CHECK_REGID, 0);
 			break;
 		case LMEM:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.p);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.typ);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.zero);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.r);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.bit);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_PREGISTER_ID(inst->arg.lmem.p)) goto invalid_argument_error;
-			if (inst->arg.lmem.typ != 6) goto invalid_argument_error;
-			if (inst->arg.lmem.zero != 0) goto invalid_argument_error;
-			if (!IS_VALID_REGISTER_ID(inst->arg.lmem.r)) goto invalid_argument_error;
-			if (inst->arg.lmem.bit != 0x20) goto invalid_argument_error;
+			B32FETCH_HELPER(lmem.p, CHECK_PREGID, 0);
+			B32FETCH_HELPER(lmem.typ, CHECK_EXPR, inst->arg.lmem.typ != 6);
+			B32FETCH_HELPER(lmem.zero, CHECK_EXPR, inst->arg.lmem.zero != 0);
+			B32FETCH_HELPER(lmem.r, CHECK_REGID, 0);
+			B32FETCH_HELPER(lmem.bit, CHECK_EXPR, inst->arg.lmem.bit != 0x20);
 			break;
 		case SMEM:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.r);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.bit);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.p);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.typ);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.zero);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_REGISTER_ID(inst->arg.smem.r)) goto invalid_argument_error;
-			if (inst->arg.smem.bit != 0x20) goto invalid_argument_error;
-			if (!IS_VALID_PREGISTER_ID(inst->arg.smem.p)) goto invalid_argument_error;
-			if (inst->arg.smem.zero != 0) goto invalid_argument_error;
-			if (inst->arg.smem.typ != 6) goto invalid_argument_error;
+			B32FETCH_HELPER(smem.r, CHECK_REGID, 0);
+			B32FETCH_HELPER(smem.bit, CHECK_EXPR, inst->arg.smem.bit != 0x20);
+			B32FETCH_HELPER(smem.p, CHECK_PREGID, 0);
+			B32FETCH_HELPER(smem.typ, CHECK_EXPR, inst->arg.smem.typ != 6);
+			B32FETCH_HELPER(smem.zero, CHECK_EXPR, inst->arg.smem.zero != 0);
 			break;
 		case PADD:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.p1);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.typ);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.r);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.bit);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.p0);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_PREGISTER_ID(inst->arg.padd.p1)) goto invalid_argument_error;
-			if (inst->arg.padd.typ != 6) goto invalid_argument_error;
-			if (!IS_VALID_REGISTER_ID(inst->arg.padd.r)) goto invalid_argument_error;
-			if (inst->arg.padd.bit != 0x20) goto invalid_argument_error;
-			if (!IS_VALID_PREGISTER_ID(inst->arg.padd.p0)) goto invalid_argument_error;
+			B32FETCH_HELPER(padd.p1, CHECK_PREGID, 0);
+			B32FETCH_HELPER(padd.typ, CHECK_EXPR, inst->arg.padd.typ != 6);
+			B32FETCH_HELPER(padd.r, CHECK_REGID, 0);
+			B32FETCH_HELPER(padd.bit, CHECK_EXPR, inst->arg.padd.bit != 0x20);
+			B32FETCH_HELPER(padd.p0, CHECK_PREGID, 0);
 			break;
 		case LIDR:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lidr.imm);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lidr.dr);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_DREGISTER_ID(inst->arg.lidr.dr)) goto invalid_argument_error;
+			B32FETCH_HELPER(lidr.imm, CHECK_NONE, 0);
+			B32FETCH_HELPER(lidr.dr, CHECK_DREGID, 0);
 			break;
 		case OR:
 		case XOR:
@@ -204,28 +167,14 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 		case SAR:
 		case DIV:
 		case MOD:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.operate.r1);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.operate.r2);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.operate.r0);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.operate.bit);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r1)) goto invalid_argument_error;
-			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r2)) goto invalid_argument_error;
-			if (!IS_VALID_REGISTER_ID(inst->arg.operate.r0)) goto invalid_argument_error;
-			if (inst->arg.operate.bit != 0x20) goto invalid_argument_error;
+			B32FETCH_HELPER(operate.r1, CHECK_REGID, 0);
+			B32FETCH_HELPER(operate.r2, CHECK_REGID, 0);
+			B32FETCH_HELPER(operate.r0, CHECK_REGID, 0);
+			B32FETCH_HELPER(operate.bit, CHECK_EXPR, inst->arg.operate.bit != 0x20);
 			break;
 		case PCP:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.pcp.p1);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.pcp.p0);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_PREGISTER_ID(inst->arg.pcp.p1)) goto invalid_argument_error;
-			if (!IS_VALID_PREGISTER_ID(inst->arg.pcp.p0)) goto invalid_argument_error;
+			B32FETCH_HELPER(pcp.p1, CHECK_PREGID, 0);
+			B32FETCH_HELPER(pcp.p0, CHECK_PREGID, 0);
 			break;
 		case CMPE:
 		case CMPNE:
@@ -233,67 +182,43 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 		case CMPGE:
 		case CMPLE:
 		case CMPG:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.r1);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.r2);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.bit1);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.r0);
-			if (ret == 0) goto fetch_b32code_error;
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.compare.bit0);
-			if (ret == 0) goto fetch_b32code_error;
-
-			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r1)) goto invalid_argument_error;
-			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r2)) goto invalid_argument_error;
-			if (inst->arg.compare.bit1 != 0x20) goto invalid_argument_error;
-			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r0)) goto invalid_argument_error;
-			if (inst->arg.compare.bit0 != 0x20) goto invalid_argument_error;
+			B32FETCH_HELPER(compare.r1, CHECK_REGID, 0);
+			B32FETCH_HELPER(compare.r2, CHECK_REGID, 0);
+			B32FETCH_HELPER(compare.bit1, CHECK_EXPR, inst->arg.compare.bit1 != 0x20);
+			B32FETCH_HELPER(compare.r0, CHECK_REGID, 0);
+			B32FETCH_HELPER(compare.bit0, CHECK_EXPR, inst->arg.compare.bit0 != 0x20);
 			break;
 		case DATA:
 			{
 				int i;
 				int dummy;
-				inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.data.typ);
-				if (ret == 0) goto fetch_b32code_error;
-				inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.data.len);
-				if (ret == 0) goto fetch_b32code_error;
-
-				if (inst->arg.data.typ != 6) goto invalid_argument_error;
-
+				B32FETCH_HELPER(data.typ, CHECK_EXPR, inst->arg.data.typ != 6);
+				B32FETCH_HELPER(data.len, CHECK_NONE, 0);
 				inst->arg.data.codepos = base+inc;
-
 				// あとで読み込むのでここでは読み飛ばす
 				inc += inst->arg.data.len*4;
 				if (base+inc > len) goto fetch_b32code_error;
 			}
 			break;
 		case REM:
-			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.uimm);
-			if (ret == 0) goto fetch_b32code_error;
+			B32FETCH_HELPER(rem.uimm, CHECK_NONE, 0);
 			switch (inst->arg.rem.uimm)
 			{
 				case 0x00:
-					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem0.arg1);
-					if (ret == 0) goto fetch_b32code_error;
+					B32FETCH_HELPER(rem.rem0.arg1, CHECK_NONE, 0);
 					break;
 				case 0x01:
-					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem1.arg1);
-					if (ret == 0) goto fetch_b32code_error;
+					B32FETCH_HELPER(rem.rem1.arg1, CHECK_NONE, 0);
 					break;
 				case 0x02:
-					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem2.arg1);
-					if (ret == 0) goto fetch_b32code_error;
-					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem2.arg2);
-					if (ret == 0) goto fetch_b32code_error;
+					B32FETCH_HELPER(rem.rem2.arg1, CHECK_NONE, 0);
+					B32FETCH_HELPER(rem.rem2.arg2, CHECK_NONE, 0);
 					break;
 				case 0x03:
-					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem3.arg1);
-					if (ret == 0) goto fetch_b32code_error;
+					B32FETCH_HELPER(rem.rem3.arg1, CHECK_NONE, 0);
 					break;
 				case 0x34:
-					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem34.arg1);
-					if (ret == 0) goto fetch_b32code_error;
+					B32FETCH_HELPER(rem.rem34.arg1, CHECK_NONE, 0);
 					break;
 				default:
 					*error = ERROR_INVALID_INSTRUCTION;
