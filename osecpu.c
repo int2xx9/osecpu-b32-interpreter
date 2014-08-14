@@ -530,11 +530,8 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 			{
 				const struct Label* label = get_label(osecpu, inst->arg.plimm.uimm);
 				if (label) {
-					if (osecpu->pregisters[inst->arg.plimm.p].type == CODE) {
-						osecpu->pregisters[inst->arg.plimm.p].p.code = label->pos;
-					} else {
-						osecpu->error = ERROR_INVALID_LABEL_TYPE;
-					}
+					osecpu->pregisters[inst->arg.plimm.p].type = CODE;
+					osecpu->pregisters[inst->arg.plimm.p].p.code = label->pos;
 				} else {
 					osecpu->error = ERROR_LABEL_DOES_NOT_EXIST;
 				}
