@@ -145,6 +145,24 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (!IS_VALID_REGISTER_ID(inst->arg.lmem.r)) goto invalid_argument_error;
 			if (inst->arg.lmem.bit != 0x20) goto invalid_argument_error;
 			break;
+		case SMEM:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.r);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.bit);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.p);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.typ);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.smem.zero);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_REGISTER_ID(inst->arg.smem.r)) goto invalid_argument_error;
+			if (inst->arg.smem.bit != 0x20) goto invalid_argument_error;
+			if (!IS_VALID_PREGISTER_ID(inst->arg.smem.p)) goto invalid_argument_error;
+			if (inst->arg.smem.zero != 0) goto invalid_argument_error;
+			if (inst->arg.smem.typ != 6) goto invalid_argument_error;
+			break;
 		case PADD:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.p1);
 			if (ret == 0) goto fetch_b32code_error;
@@ -578,6 +596,16 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 				const struct OsecpuPointer* p = &osecpu->pregisters[inst->arg.lmem.p];
 				if (p->type == SINT32) {
 					osecpu->registers[inst->arg.lmem.r] = *p->p.sint32;
+				} else {
+					osecpu->error = ERROR_INVALID_LABEL_TYPE;
+				}
+			}
+			break;
+		case SMEM:
+			{
+				struct OsecpuPointer* p = &osecpu->pregisters[inst->arg.lmem.p];
+				if (p->type == SINT32) {
+					*p->p.sint32 = osecpu->registers[inst->arg.lmem.r];
 				} else {
 					osecpu->error = ERROR_INVALID_LABEL_TYPE;
 				}

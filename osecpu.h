@@ -113,6 +113,14 @@ struct Instruction
 		struct
 		{
 			int bit;
+			int r;
+			int typ;
+			int p;
+			int zero;
+		} smem;
+		struct
+		{
+			int bit;
 			int p0;
 			int typ;
 			int p1;
