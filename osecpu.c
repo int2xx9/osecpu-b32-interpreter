@@ -215,10 +215,8 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 				inst->arg.data.codepos = base+inc;
 
 				// あとで読み込むのでここでは読み飛ばす
-				for (i = 0; i < inst->arg.data.len; i++) {
-					inc += ret = fetch_b32code(code, base+inc, len, &dummy);
-					if (ret == 0) goto fetch_b32code_error;
-				}
+				inc += inst->arg.data.len*4;
+				if (base+inc > len) goto fetch_b32code_error;
 			}
 			break;
 		case REM:
