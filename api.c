@@ -7,6 +7,7 @@
 #define MODE_COL3	0
 #define MODE_COL24	3
 #define MODE_XOR	0x08
+#define MODE_OR		0x04
 
 #define API_OPENWIN		0x0010
 #define API_DRAWPOINT	0x0002
@@ -88,6 +89,8 @@ void api0003_drawLine(struct Osecpu* osecpu)
 	}
 	if (mode == MODE_XOR) {
 		window_draw_line_xor(osecpu->window, get_color(osecpu, mode&~MODE_XOR, color), from_x, from_y, to_x, to_y);
+	} else if (mode == MODE_OR) {
+		window_draw_line_or(osecpu->window, get_color(osecpu, mode&~MODE_OR, color), from_x, from_y, to_x, to_y);
 	}
 }
 

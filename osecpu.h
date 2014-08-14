@@ -12,6 +12,7 @@
 #define ERROR_NOT_IMPLEMENTED_API	7
 #define ERROR_INVALID_MODE			8
 #define ERROR_INVALID_COLOR			9
+#define ERROR_INVALID_LABEL_TYPE	10
 
 static const char* ErrorMessages[] = {
 	"",
@@ -33,6 +34,8 @@ static const char* ErrorMessages[] = {
 	"invalid mode",
 	// ERROR_INVALID_COLOR
 	"invalid color",
+	// ERROR_INVALID_LABEL_TYPE
+	"invalid label type",
 };
 
 #define IS_VALID_REGISTER_ID(regid) ((regid) >= 0 && (regid) <= 0x3f)
@@ -69,6 +72,7 @@ enum InstructionId
 	CMPG	= 0x25,
 	TSTZ	= 0x26,
 	TSTNZ	= 0x27,
+	DATA	= 0x2e,
 	LIDR	= 0xfd,
 	REM		= 0xfe,
 };
@@ -100,6 +104,22 @@ struct Instruction
 		} cnd;
 		struct
 		{
+			int bit;
+			int r;
+			int typ;
+			int p;
+			int zero;
+		} lmem;
+		struct
+		{
+			int bit;
+			int p0;
+			int typ;
+			int p1;
+			int r;
+		} padd;
+		struct
+		{
 			int imm;
 			int dr;
 		} lidr;
@@ -123,6 +143,12 @@ struct Instruction
 			int r0;
 			int bit0;
 		} compare;
+		struct
+		{
+			int typ;
+			int len;
+			int codepos;
+		} data;
 		union
 		{
 			int uimm;
@@ -143,6 +169,10 @@ struct Instruction
 			{
 				int arg1;
 			} rem3;
+			struct
+			{
+				int arg1;
+			} rem34;
 		} rem;
 	} arg;
 };
@@ -151,12 +181,32 @@ struct Label
 {
 	int id;
 	int pos;
+	// XXX: DATA関係の変数を別の場所に移動したい (データかどうかのフラグだけ保持したい)
+	int* data;
+	int datalen;
+};
+
+enum OsecpuPointerType
+{
+	NOT_INITIAlIZED,
+	CODE,
+	SINT32,
+};
+
+struct OsecpuPointer
+{
+	enum OsecpuPointerType type;
+	union
+	{
+		int* sint32;
+		int code;
+	} p;
 };
 
 struct Osecpu
 {
 	int registers[0x40];
-	int pregisters[0x40];
+	struct OsecpuPointer pregisters[0x40];
 	int dregisters[4];
 	struct Instruction* code;
 	int codelen;

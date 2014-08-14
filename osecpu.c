@@ -6,6 +6,14 @@
 #include <string.h>
 #include <inttypes.h>
 
+#define BIG_TO_LITTLE(val) \
+	( \
+		(unsigned)((val)&0xff000000) >> 24 | \
+		(unsigned)((val)&0x00ff0000) >>  8 | \
+		(unsigned)((val)&0x0000ff00) <<  8 | \
+		(unsigned)((val)&0x000000ff) << 24 \
+	)
+
 #define LABEL_API 0xffffffff
 #define B32_SIGNATURE "\x05\xe2\x00\xcf\xee\x7f\xf1\x88"
 
@@ -21,8 +29,11 @@ struct Osecpu* init_osecpu()
 	osecpu = (struct Osecpu*)malloc(sizeof(struct Osecpu));
 	if (!osecpu) return NULL;
 	memset(osecpu, 0, sizeof(struct Osecpu));
+	// instruction pointer
+	osecpu->pregisters[0x3f].type = CODE;
 	// a pointer to call APIs
-	osecpu->pregisters[0x2f] = LABEL_API;
+	osecpu->pregisters[0x2f].type = CODE;
+	osecpu->pregisters[0x2f].p.code = LABEL_API;
 	return osecpu;
 }
 
@@ -116,6 +127,42 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 
 			if (!IS_VALID_REGISTER_ID(inst->arg.cnd.r)) goto invalid_argument_error;
 			break;
+		case LMEM:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.p);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.typ);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.zero);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.r);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lmem.bit);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_PREGISTER_ID(inst->arg.lmem.p)) goto invalid_argument_error;
+			if (inst->arg.lmem.typ != 6) goto invalid_argument_error;
+			if (inst->arg.lmem.zero != 0) goto invalid_argument_error;
+			if (!IS_VALID_REGISTER_ID(inst->arg.lmem.r)) goto invalid_argument_error;
+			if (inst->arg.lmem.bit != 0x20) goto invalid_argument_error;
+			break;
+		case PADD:
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.p1);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.typ);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.r);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.bit);
+			if (ret == 0) goto fetch_b32code_error;
+			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.padd.p0);
+			if (ret == 0) goto fetch_b32code_error;
+
+			if (!IS_VALID_PREGISTER_ID(inst->arg.padd.p1)) goto invalid_argument_error;
+			if (inst->arg.padd.typ != 6) goto invalid_argument_error;
+			if (!IS_VALID_REGISTER_ID(inst->arg.padd.r)) goto invalid_argument_error;
+			if (inst->arg.padd.bit != 0x20) goto invalid_argument_error;
+			if (!IS_VALID_PREGISTER_ID(inst->arg.padd.p0)) goto invalid_argument_error;
+			break;
 		case LIDR:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.lidr.imm);
 			if (ret == 0) goto fetch_b32code_error;
@@ -180,27 +227,49 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 			if (!IS_VALID_REGISTER_ID(inst->arg.compare.r0)) goto invalid_argument_error;
 			if (inst->arg.compare.bit0 != 0x20) goto invalid_argument_error;
 			break;
+		case DATA:
+			{
+				int i;
+				int dummy;
+				inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.data.typ);
+				if (ret == 0) goto fetch_b32code_error;
+				inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.data.len);
+				if (ret == 0) goto fetch_b32code_error;
+
+				if (inst->arg.data.typ != 6) goto invalid_argument_error;
+
+				inst->arg.data.codepos = base+inc;
+
+				// あとで読み込むのでここでは読み飛ばす
+				inc += inst->arg.data.len*4;
+				if (base+inc > len) goto fetch_b32code_error;
+			}
+			break;
 		case REM:
 			inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.uimm);
 			if (ret == 0) goto fetch_b32code_error;
 			switch (inst->arg.rem.uimm)
 			{
-				case 0:
+				case 0x00:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem0.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
-				case 1:
+				case 0x01:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem1.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
-				case 2:
+				case 0x02:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem2.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem2.arg2);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
-				case 3:
+				case 0x03:
 					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem3.arg1);
+					if (ret == 0) goto fetch_b32code_error;
+					break;
+				case 0x34:
+					inc += ret = fetch_b32code(code, base+inc, len, &inst->arg.rem.rem34.arg1);
 					if (ret == 0) goto fetch_b32code_error;
 					break;
 				default:
@@ -246,9 +315,9 @@ int count_instructions(const uint8_t* code, const int len, int* error)
 }
 
 int compare_labels(const struct Label* a, const struct Label* b) { return a->id > b->id; }
-int prepare_labels(struct Osecpu* osecpu)
+int prepare_labels(struct Osecpu* osecpu, const unsigned char* code)
 {
-	int i, j;
+	int i, j, k;
 	int labelcnt;
 	struct Label* labels;
 
@@ -267,6 +336,17 @@ int prepare_labels(struct Osecpu* osecpu)
 		if (osecpu->code[i].id != LB) continue;
 		labels[j].id = osecpu->code[i].arg.lb.uimm;
 		labels[j].pos = i;
+		labels[j].data = NULL;
+		if (i+1 <= osecpu->codelen && osecpu->code[i+1].id == DATA) {
+			// store data if next instruction is data
+			labels[j].datalen = osecpu->code[i+1].arg.data.len;
+			labels[j].data = (int*)malloc(labels[j].datalen * sizeof(int));
+			if (!labels[j].data) return 0;
+			for (k = 0; k < labels[j].datalen; k++) {
+				int* base = (int*)((unsigned char*)code + osecpu->code[i+1].arg.data.codepos);
+				labels[j].data[k] = BIG_TO_LITTLE(base[k]);
+			}
+		}
 		j++;
 	}
 
@@ -301,7 +381,7 @@ int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len)
 
 	osecpu->codelen = instcnt;
 
-	if (!prepare_labels(osecpu)) return 0;
+	if (!prepare_labels(osecpu, code)) return 0;
 
 	return 1;
 }
@@ -384,10 +464,10 @@ void coredump(struct Osecpu* osecpu)
 	i = 0;
 	while (i < 0x40/4) {
 		printf("P%02X: %08X\tP%02X: %08X\tP%02X: %08X\tP%02X: %08X\n"
-				, i+16*0, osecpu->pregisters[i+16*0]
-				, i+16*1, osecpu->pregisters[i+16*1]
-				, i+16*2, osecpu->pregisters[i+16*2]
-				, i+16*3, osecpu->pregisters[i+16*3]
+				, i+16*0, osecpu->pregisters[i+16*0].p.code
+				, i+16*1, osecpu->pregisters[i+16*1].p.code
+				, i+16*2, osecpu->pregisters[i+16*2].p.code
+				, i+16*3, osecpu->pregisters[i+16*3].p.code
 			  );
 		i++;
 	}
@@ -465,6 +545,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case NOP:
 		case LB:
 		case REM:
+		case DATA:
 			// Nothing to do
 			break;
 		case LIMM:
@@ -474,7 +555,13 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 			{
 				const struct Label* label = get_label(osecpu, inst->arg.plimm.uimm);
 				if (label) {
-					osecpu->pregisters[inst->arg.plimm.p] = label->pos;
+					if (label->data) {
+						osecpu->pregisters[inst->arg.plimm.p].type = SINT32;
+						osecpu->pregisters[inst->arg.plimm.p].p.sint32 = label->data;
+					} else {
+						osecpu->pregisters[inst->arg.plimm.p].type = CODE;
+						osecpu->pregisters[inst->arg.plimm.p].p.code = label->pos;
+					}
 				} else {
 					osecpu->error = ERROR_LABEL_DOES_NOT_EXIST;
 				}
@@ -483,7 +570,30 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case CND:
 			if (!(osecpu->registers[inst->arg.cnd.r] & 1)) {
 				// Skip a next instruction
-				osecpu->pregisters[0x3f]++;
+				osecpu->pregisters[0x3f].p.code++;
+			}
+			break;
+		case LMEM:
+			{
+				const struct OsecpuPointer* p = &osecpu->pregisters[inst->arg.lmem.p];
+				if (p->type == SINT32) {
+					osecpu->registers[inst->arg.lmem.r] = *p->p.sint32;
+				} else {
+					osecpu->error = ERROR_INVALID_LABEL_TYPE;
+				}
+			}
+			break;
+		case PADD:
+			// TODO: オーバーフロー確認
+			{
+				struct OsecpuPointer* p0 = &osecpu->pregisters[inst->arg.padd.p0];
+				const struct OsecpuPointer* p1 = &osecpu->pregisters[inst->arg.padd.p1];
+				const int r = osecpu->registers[inst->arg.padd.r];
+				switch (p1->type) {
+					case CODE: *p0 = *p1; p0->p.code++; break;
+					case SINT32: *p0 = *p1; p0->p.sint32++; break;
+					default: osecpu->error = ERROR_INVALID_LABEL_TYPE; break;
+				}
 			}
 			break;
 		case LIDR:
@@ -525,20 +635,39 @@ invalid_argument_error:
 
 struct Instruction* fetch_instruction(struct Osecpu* osecpu)
 {
-	const int pc = osecpu->pregisters[0x3f];
+	const int pc = osecpu->pregisters[0x3f].p.code;
 	if (pc == LABEL_API) return NULL;
-	if (osecpu->pregisters[0x3f]+1 > osecpu->codelen) return 0;
-	osecpu->pregisters[0x3f]++;
+	if (osecpu->pregisters[0x3f].p.code+1 > osecpu->codelen) return 0;
+	osecpu->pregisters[0x3f].p.code++;
 	return &osecpu->code[pc];
+}
+
+void initialize_osecpu(struct Osecpu* osecpu)
+{
+	int i, j;
+
+	// initialize P01〜P04
+	for (i = j = 0; i < osecpu->labelcnt; i++) {
+		if (osecpu->labels[i].data) {
+			j++;
+			osecpu->pregisters[j].type = SINT32;
+			osecpu->pregisters[j].p.sint32 = osecpu->labels[i].data;
+			if (j >= 4) break; 
+		}
+	}
 }
 
 int run_b32(struct Osecpu* osecpu)
 {
 	struct Instruction* inst;
+
+	// TODO: ブレーク機能とかはまだついてないのでとりあえずここで初期化する
+	initialize_osecpu(osecpu);
+
 	while (1) {
 		inst = fetch_instruction(osecpu);
 		if (!inst) {
-			if (osecpu->pregisters[0x3f] != LABEL_API) break;
+			if (osecpu->pregisters[0x3f].p.code != LABEL_API) break;
 			call_api(osecpu);
 		} else {
 			do_instruction(osecpu, inst);
