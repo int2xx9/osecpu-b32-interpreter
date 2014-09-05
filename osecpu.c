@@ -370,7 +370,7 @@ int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 	fclose(fp);
 
 	// Validate a signature
-	if (strncmp(code, B32_SIGNATURE, strlen(B32_SIGNATURE)) != 0) {
+	if (strncmp(code, B32_SIGNATURE, 8) != 0) {
 		free(code);
 		return -1;
 	}
