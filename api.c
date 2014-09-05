@@ -51,9 +51,12 @@ void api0010_openWin(struct Osecpu* osecpu)
 	const int width = osecpu->registers[0x33];
 	const int height = osecpu->registers[0x34];
 
-	// TODO: 既に初期化されていないかチェック
-	osecpu->window = window_create(width, height);
-	window_fill_rect(osecpu->window, 0, 0, 0, width, height);
+	if (osecpu->window) {
+		window_resize(osecpu->window, width, height);
+	} else {
+		osecpu->window = window_create(width, height);
+		window_fill_rect(osecpu->window, 0, 0, 0, width, height);
+	}
 }
 
 void api0010_openWin_default(struct Osecpu* osecpu)
