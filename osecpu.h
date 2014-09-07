@@ -190,7 +190,8 @@ struct Label
 	int id;
 	int pos;
 	// XXX: DATA関係の変数を別の場所に移動したい (データかどうかのフラグだけ保持したい)
-	int* data;
+	// XXX: T_UINT8以外への対応
+	uint8_t* data;
 	int datalen;
 };
 
@@ -198,7 +199,7 @@ enum OsecpuPointerType
 {
 	NOT_INITIAlIZED,
 	CODE,
-	SINT32,
+	UINT8,
 };
 
 struct OsecpuPointer
@@ -206,7 +207,7 @@ struct OsecpuPointer
 	enum OsecpuPointerType type;
 	union
 	{
-		int* sint32;
+		uint8_t* uint8;
 		int code;
 	} p;
 };

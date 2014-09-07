@@ -288,11 +288,11 @@ int prepare_labels(struct Osecpu* osecpu, const unsigned char* code)
 		if (i+1 <= osecpu->codelen && osecpu->code[i+1].id == DATA) {
 			// store data if next instruction is data
 			labels[j].datalen = osecpu->code[i+1].arg.data.len;
-			labels[j].data = (int*)malloc(labels[j].datalen * sizeof(int));
+			labels[j].data = (uint8_t*)malloc(labels[j].datalen * sizeof(uint8_t));
 			if (!labels[j].data) return 0;
 			for (k = 0; k < labels[j].datalen; k++) {
 				int* base = (int*)((unsigned char*)code + osecpu->code[i+1].arg.data.codepos);
-				labels[j].data[k] = BIG_TO_LITTLE(base[k]);
+				labels[j].data[k] = BIG_TO_LITTLE(base[k])&0xff;
 			}
 		}
 		j++;
@@ -443,6 +443,7 @@ void coredump(struct Osecpu* osecpu)
 		}
 		printf("\n");
 	}
+
 	printf("\n");
 }
 
@@ -516,8 +517,8 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 				const struct Label* label = get_label(osecpu, inst->arg.plimm.uimm);
 				if (label) {
 					if (label->data) {
-						osecpu->pregisters[inst->arg.plimm.p].type = SINT32;
-						osecpu->pregisters[inst->arg.plimm.p].p.sint32 = label->data;
+						osecpu->pregisters[inst->arg.plimm.p].type = UINT8;
+						osecpu->pregisters[inst->arg.plimm.p].p.uint8 = label->data;
 					} else {
 						osecpu->pregisters[inst->arg.plimm.p].type = CODE;
 						osecpu->pregisters[inst->arg.plimm.p].p.code = label->pos;
@@ -536,8 +537,8 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case LMEM:
 			{
 				const struct OsecpuPointer* p = &osecpu->pregisters[inst->arg.lmem.p];
-				if (p->type == SINT32) {
-					osecpu->registers[inst->arg.lmem.r] = *p->p.sint32;
+				if (p->type == UINT8) {
+					osecpu->registers[inst->arg.lmem.r] = *p->p.uint8;
 				} else {
 					osecpu->error = ERROR_INVALID_LABEL_TYPE;
 				}
@@ -546,8 +547,8 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 		case SMEM:
 			{
 				struct OsecpuPointer* p = &osecpu->pregisters[inst->arg.lmem.p];
-				if (p->type == SINT32) {
-					*p->p.sint32 = osecpu->registers[inst->arg.lmem.r];
+				if (p->type == UINT8) {
+					*p->p.uint8 = osecpu->registers[inst->arg.lmem.r];
 				} else {
 					osecpu->error = ERROR_INVALID_LABEL_TYPE;
 				}
@@ -561,7 +562,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 				const int r = osecpu->registers[inst->arg.padd.r];
 				switch (p1->type) {
 					case CODE: *p0 = *p1; p0->p.code++; break;
-					case SINT32: *p0 = *p1; p0->p.sint32++; break;
+					case UINT8: *p0 = *p1; p0->p.uint8++; break;
 					default: osecpu->error = ERROR_INVALID_LABEL_TYPE; break;
 				}
 			}
@@ -620,9 +621,9 @@ void initialize_osecpu(struct Osecpu* osecpu)
 	for (i = j = 0; i < osecpu->labelcnt; i++) {
 		if (osecpu->labels[i].data) {
 			j++;
-			osecpu->pregisters[j].type = SINT32;
-			osecpu->pregisters[j].p.sint32 = osecpu->labels[i].data;
-			if (j >= 4) break; 
+			osecpu->pregisters[j].type = UINT8;
+			osecpu->pregisters[j].p.uint8 = osecpu->labels[i].data;
+			if (j >= 4) break;
 		}
 	}
 }
