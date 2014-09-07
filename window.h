@@ -19,6 +19,7 @@ struct OsecpuWindow
 
 struct OsecpuWindow* window_create();
 void window_free(struct OsecpuWindow*);
+void window_wait_quit(struct OsecpuWindow*);
 void window_resize(struct OsecpuWindow*, int, int);
 void window_draw_point(struct OsecpuWindow*, int, int, int);
 void window_fill_rect(struct OsecpuWindow*, int, int, int, int, int);

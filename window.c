@@ -142,6 +142,12 @@ void window_free(struct OsecpuWindow* window)
 	free(window);
 }
 
+void window_wait_quit(struct OsecpuWindow* window)
+{
+	void* dummy;
+	pthread_join(window->thread, &dummy);
+}
+
 void window_redraw(struct OsecpuWindow* window)
 {
 	struct WindowQueue* qdata;

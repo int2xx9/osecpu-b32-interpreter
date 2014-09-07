@@ -645,6 +645,8 @@ int run_b32(struct Osecpu* osecpu)
 		}
 		if (osecpu->error != 0) return -1;
 	}
+
+	window_wait_quit(osecpu->window);
 	return 0;
 }
 
