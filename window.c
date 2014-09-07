@@ -11,9 +11,15 @@ struct WindowQueue
 	{
 		QUEUE_DESTROY,
 		QUEUE_REDRAW,
+		QUEUE_RESIZE,
 	} type;
 	union
 	{
+		struct
+		{
+			int width;
+			int height;
+		} resize;
 	} arg;
 };
 
@@ -39,6 +45,9 @@ gint queue_timer_event(gpointer data)
 				break;
 			case QUEUE_REDRAW:
 				gdk_window_invalidate_rect(gtk_widget_get_window(GTK_WIDGET(window->window)), NULL, 1);
+				break;
+			case QUEUE_RESIZE:
+				gtk_window_resize(window->window, qdata->arg.resize.width, qdata->arg.resize.height);
 				break;
 		}
 		free(qdata);
@@ -139,6 +148,17 @@ void window_redraw(struct OsecpuWindow* window)
 	qdata = (struct WindowQueue*)malloc(sizeof(struct WindowQueue));
 	if (!qdata) return;
 	qdata->type = QUEUE_REDRAW;
+	g_async_queue_push(window->queue, qdata);
+}
+
+void window_resize(struct OsecpuWindow* window, int width, int height)
+{
+	struct WindowQueue* qdata;
+	qdata = (struct WindowQueue*)malloc(sizeof(struct WindowQueue));
+	if (!qdata) return;
+	qdata->type = QUEUE_RESIZE;
+	qdata->arg.resize.width = width;
+	qdata->arg.resize.height = height;
 	g_async_queue_push(window->queue, qdata);
 }
 
