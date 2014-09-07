@@ -561,8 +561,8 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 				const struct OsecpuPointer* p1 = &osecpu->pregisters[inst->arg.padd.p1];
 				const int r = osecpu->registers[inst->arg.padd.r];
 				switch (p1->type) {
-					case CODE: *p0 = *p1; p0->p.code++; break;
-					case UINT8: *p0 = *p1; p0->p.uint8++; break;
+					case CODE: *p0 = *p1; p0->p.code+=r; break;
+					case UINT8: *p0 = *p1; p0->p.uint8+=r; break;
 					default: osecpu->error = ERROR_INVALID_LABEL_TYPE; break;
 				}
 			}
