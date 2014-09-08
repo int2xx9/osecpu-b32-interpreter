@@ -2,6 +2,7 @@
 #define _OSECPU_H_
 
 #include <inttypes.h>
+#include <setjmp.h>
 
 #define ERROR_INVALID_INSTRUCTION	1
 #define ERROR_INVALID_ARGUMENT		2
@@ -13,9 +14,10 @@
 #define ERROR_INVALID_MODE			8
 #define ERROR_INVALID_COLOR			9
 #define ERROR_INVALID_LABEL_TYPE	10
+#define ERROR_MALLOC				11
 
 static const char* ErrorMessages[] = {
-	"",
+	"exited successfully",
 	// ERROR_INVALID_INSTRUCTION
 	"invalid Instruction error",
 	// ERROR_INVALID_ARGUMENT
@@ -36,6 +38,8 @@ static const char* ErrorMessages[] = {
 	"invalid color",
 	// ERROR_INVALID_LABEL_TYPE
 	"invalid label type",
+	// ERROR_MALLOC
+	"an error occured on malloc()",
 };
 
 #define IS_VALID_REGISTER_ID(regid) ((regid) >= 0 && (regid) <= 0x3f)
@@ -222,9 +226,11 @@ struct Osecpu
 	struct Label* labels;
 	int labelcnt;
 	int error;
+	jmp_buf abort_to;
 	struct OsecpuWindow* window;
 };
 
+void abort_vm(struct Osecpu*, int);
 const char* get_error_text(int);
 struct Osecpu* init_osecpu();
 void free_osecpu(struct Osecpu*);

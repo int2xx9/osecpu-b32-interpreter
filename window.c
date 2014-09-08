@@ -142,10 +142,12 @@ void window_free(struct OsecpuWindow* window)
 	free(window);
 }
 
-void window_wait_quit(struct OsecpuWindow* window)
+int window_wait_quit(struct OsecpuWindow* window)
 {
 	void* dummy;
+	if (window == NULL) return 0;
 	pthread_join(window->thread, &dummy);
+	return 1;
 }
 
 void window_redraw(struct OsecpuWindow* window)
