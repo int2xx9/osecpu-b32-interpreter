@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <setjmp.h>
 
 #define BIG_TO_LITTLE(val) \
 	( \
@@ -34,9 +35,15 @@
 #define LABEL_API 0xffffffff
 #define B32_SIGNATURE "\x05\xe2\x00\xcf\xee\x7f\xf1\x88"
 
+void abort_vm(struct Osecpu* osecpu, int error_code)
+{
+	osecpu->error = error_code;
+	longjmp(osecpu->abort_to, 1);
+}
+
 const char* get_error_text(int id)
 {
-	if (id < 1 || id > sizeof(ErrorMessages)/sizeof(ErrorMessages[0])) return 0;
+	if (id < 0 || id > sizeof(ErrorMessages)/sizeof(ErrorMessages[0])) return 0;
 	return ErrorMessages[id];
 }
 
@@ -445,6 +452,8 @@ void coredump(struct Osecpu* osecpu)
 	}
 
 	printf("\n");
+
+	printf("vm exit code: %d (%s)\n", osecpu->error, get_error_text(osecpu->error));
 }
 
 void do_operate_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
@@ -464,7 +473,7 @@ void do_operate_instruction(struct Osecpu* osecpu, const struct Instruction* ins
 		case DIV:
 		case MOD:
 			if (r2 == 0) {
-				osecpu->error = ERROR_DIVISION_BY_ZERO;
+				abort_vm(osecpu, ERROR_DIVISION_BY_ZERO);
 			} else if (inst->id == DIV) {
 				*r0 = r1 / r2;
 			} else if (inst->id == MOD) {
@@ -524,7 +533,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 						osecpu->pregisters[inst->arg.plimm.p].p.code = label->pos;
 					}
 				} else {
-					osecpu->error = ERROR_LABEL_DOES_NOT_EXIST;
+					abort_vm(osecpu, ERROR_LABEL_DOES_NOT_EXIST);
 				}
 			}
 			break;
@@ -540,7 +549,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 				if (p->type == UINT8) {
 					osecpu->registers[inst->arg.lmem.r] = *p->p.uint8;
 				} else {
-					osecpu->error = ERROR_INVALID_LABEL_TYPE;
+					abort_vm(osecpu, ERROR_INVALID_LABEL_TYPE);
 				}
 			}
 			break;
@@ -550,7 +559,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 				if (p->type == UINT8) {
 					*p->p.uint8 = osecpu->registers[inst->arg.lmem.r];
 				} else {
-					osecpu->error = ERROR_INVALID_LABEL_TYPE;
+					abort_vm(osecpu, ERROR_INVALID_LABEL_TYPE);
 				}
 			}
 			break;
@@ -563,7 +572,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 				switch (p1->type) {
 					case CODE: *p0 = *p1; p0->p.code+=r; break;
 					case UINT8: *p0 = *p1; p0->p.uint8+=r; break;
-					default: osecpu->error = ERROR_INVALID_LABEL_TYPE; break;
+					default: abort_vm(osecpu, ERROR_INVALID_LABEL_TYPE); break;
 				}
 			}
 			break;
@@ -594,13 +603,9 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 			do_compare_instruction(osecpu, inst);
 			break;
 		default:
-			osecpu->error = ERROR_INVALID_INSTRUCTION;
+			abort_vm(osecpu, ERROR_INVALID_INSTRUCTION);
 			break;
 	}
-	return;
-
-invalid_argument_error:
-	osecpu->error = ERROR_INVALID_ARGUMENT;
 	return;
 }
 
@@ -635,15 +640,18 @@ int run_b32(struct Osecpu* osecpu)
 	// TODO: ブレーク機能とかはまだついてないのでとりあえずここで初期化する
 	initialize_osecpu(osecpu);
 
-	while (1) {
-		inst = fetch_instruction(osecpu);
-		if (!inst) {
-			if (osecpu->pregisters[0x3f].p.code != LABEL_API) break;
-			call_api(osecpu);
-		} else {
-			do_instruction(osecpu, inst);
+	if (setjmp(osecpu->abort_to) == 0) {
+		while (1) {
+			inst = fetch_instruction(osecpu);
+			if (!inst) {
+				if (osecpu->pregisters[0x3f].p.code != LABEL_API) break;
+				call_api(osecpu);
+			} else {
+				do_instruction(osecpu, inst);
+			}
 		}
-		if (osecpu->error != 0) return -1;
+	} else {
+		return -1;
 	}
 
 	window_wait_quit(osecpu->window);
