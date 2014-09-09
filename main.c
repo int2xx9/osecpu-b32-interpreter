@@ -6,6 +6,7 @@
 int main(int argc, char** argv)
 {
 	struct Osecpu* osecpu;
+	int osecpu_ret;
 
 	if (argc < 2) {
 		printf("Usage: %s app.b32\n", argv[0]);
@@ -25,7 +26,10 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	run_b32(osecpu);
+	osecpu_ret = restart_osecpu(osecpu);
+	if (osecpu_ret == 2) {
+		printf("Breakpoint!\n");
+	}
 	if (osecpu->error) {
 		fprintf(stderr, "Error: %s\n", get_error_text(osecpu->error));
 	}
