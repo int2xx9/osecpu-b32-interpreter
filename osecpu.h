@@ -238,6 +238,9 @@ struct Osecpu
 	struct OsecpuWindow* window;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void abort_vm(struct Osecpu*, int, int);
 const char* get_error_text(int);
 struct Osecpu* init_osecpu();
@@ -249,6 +252,9 @@ void initialize_osecpu(struct Osecpu*);
 int do_next_instruction(struct Osecpu*);
 int restart_osecpu(struct Osecpu*);
 int continue_osecpu(struct Osecpu*);
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

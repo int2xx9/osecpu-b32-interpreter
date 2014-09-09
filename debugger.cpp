@@ -3,22 +3,22 @@
 #include <stdlib.h>
 #include <string.h>
 
-OsecpuDebugger* debugger_init(struct Osecpu* osecpu)
+extern "C" OsecpuDebugger* debugger_init(struct Osecpu* osecpu)
 {
 	OsecpuDebugger* debugger;
-	debugger = malloc(sizeof(OsecpuDebugger));
+	debugger = (OsecpuDebugger*)malloc(sizeof(OsecpuDebugger));
 	if (!debugger) return NULL;
 	memset(debugger, 0, sizeof(OsecpuDebugger));
 	debugger->osecpu = osecpu;
 	return debugger;
 }
 
-void debugger_free(OsecpuDebugger* debugger)
+extern "C" void debugger_free(OsecpuDebugger* debugger)
 {
 	free(debugger);
 }
 
-void debugger_open(OsecpuDebugger* debugger)
+extern "C" void debugger_open(OsecpuDebugger* debugger)
 {
 	char cmdbuf[1024];
 	while (1) {
