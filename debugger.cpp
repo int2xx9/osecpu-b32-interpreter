@@ -23,12 +23,23 @@ class RegistersWidget : public Gtk::VBox
 	Gtk::Label label;
 	Gtk::ScrolledWindow scrwin;
 	Gtk::TreeView treeview;
+	Gtk::TreeModelColumn<Glib::ustring> name;
+	Gtk::TreeModelColumn<int> value;
+	Gtk::TreeModel::ColumnRecord record;
+	Glib::RefPtr<Gtk::ListStore> liststore;
 public:
 	RegistersWidget() : label("Registers", Gtk::ALIGN_START, Gtk::ALIGN_LEFT)
 	{
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
 		pack_start(scrwin);
+
+		record.add(name);
+		record.add(value);
+		liststore = Gtk::ListStore::create(record);
+		treeview.set_model(liststore);
+		treeview.append_column("Name", name);
+		treeview.append_column("Value", value);
 	}
 };
 
@@ -37,12 +48,26 @@ class LabelsWidget : public Gtk::VBox
 	Gtk::Label label;
 	Gtk::ScrolledWindow scrwin;
 	Gtk::TreeView treeview;
+	Gtk::TreeModelColumn<Glib::ustring> id;
+	Gtk::TreeModelColumn<Glib::ustring> codepos;
+	Gtk::TreeModelColumn<Glib::ustring> type;
+	Gtk::TreeModel::ColumnRecord record;
+	Glib::RefPtr<Gtk::ListStore> liststore;
 public:
 	LabelsWidget() : label("Labels", Gtk::ALIGN_START, Gtk::ALIGN_LEFT)
 	{
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
 		pack_start(scrwin);
+
+		record.add(id);
+		record.add(codepos);
+		record.add(type);
+		liststore = Gtk::ListStore::create(record);
+		treeview.set_model(liststore);
+		treeview.append_column("ID", id);
+		treeview.append_column("Pos", codepos);
+		treeview.append_column("Type", type);
 	}
 };
 
@@ -51,12 +76,23 @@ class CodeWidget : public Gtk::VBox
 	Gtk::Label label;
 	Gtk::ScrolledWindow scrwin;
 	Gtk::TreeView treeview;
+	Gtk::TreeModelColumn<Glib::ustring> inst_number;
+	Gtk::TreeModelColumn<Glib::ustring> inst_string;
+	Gtk::TreeModel::ColumnRecord record;
+	Glib::RefPtr<Gtk::ListStore> liststore;
 public:
 	CodeWidget() : label("Code", Gtk::ALIGN_START, Gtk::ALIGN_LEFT)
 	{
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
 		pack_start(scrwin);
+
+		record.add(inst_number);
+		record.add(inst_string);
+		liststore = Gtk::ListStore::create(record);
+		treeview.set_model(liststore);
+		treeview.append_column("Instruction #", inst_number);
+		treeview.append_column("ASKA", inst_string);
 	}
 };
 
@@ -71,6 +107,7 @@ class DebuggerWindow : public Gtk::Window
 public:
 	DebuggerWindow()
 	{
+		resize(500, 500);
 		set_title("OSECPU Debugger");
 		vbox_left.pack_start(widget_control, Gtk::PACK_SHRINK);
 		vbox_left.pack_start(widget_registers);
