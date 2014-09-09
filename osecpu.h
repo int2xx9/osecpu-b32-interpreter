@@ -218,6 +218,7 @@ struct OsecpuPointer
 
 struct Osecpu
 {
+	int is_initialized;
 	int registers[0x40];
 	struct OsecpuPointer pregisters[0x40];
 	int dregisters[4];
@@ -237,8 +238,9 @@ void free_osecpu(struct Osecpu*);
 int load_b32_from_file(struct Osecpu*, const char*);
 int load_b32_from_memory(struct Osecpu*, const uint8_t*, long);
 void coredump(struct Osecpu*);
+void initialize_osecpu(struct Osecpu*);
 int do_next_instruction(struct Osecpu*);
-int run_b32(struct Osecpu*);
+int restart_osecpu(struct Osecpu*);
 
 #endif
 

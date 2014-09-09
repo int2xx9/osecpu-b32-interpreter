@@ -52,12 +52,7 @@ struct Osecpu* init_osecpu()
 	struct Osecpu* osecpu;
 	osecpu = (struct Osecpu*)malloc(sizeof(struct Osecpu));
 	if (!osecpu) return NULL;
-	memset(osecpu, 0, sizeof(struct Osecpu));
-	// instruction pointer
-	osecpu->pregisters[0x3f].type = CODE;
-	// a pointer to call APIs
-	osecpu->pregisters[0x2f].type = CODE;
-	osecpu->pregisters[0x2f].p.code = LABEL_API;
+	osecpu->is_initialized = 0;
 	return osecpu;
 }
 
@@ -622,6 +617,23 @@ struct Instruction* fetch_instruction(struct Osecpu* osecpu)
 void initialize_osecpu(struct Osecpu* osecpu)
 {
 	int i, j;
+	struct Osecpu copy_osecpu = *osecpu;
+
+	if (osecpu->window) window_free(osecpu->window);
+
+	memset(osecpu, 0, sizeof(struct Osecpu));
+	osecpu->is_initialized = 1;
+	osecpu->code = copy_osecpu.code;
+	osecpu->codelen = copy_osecpu.codelen;
+	osecpu->labels = copy_osecpu.labels;
+	osecpu->labelcnt = copy_osecpu.labelcnt;
+
+	// instruction pointer
+	osecpu->pregisters[0x3f].type = CODE;
+
+	// a pointer to call APIs
+	osecpu->pregisters[0x2f].type = CODE;
+	osecpu->pregisters[0x2f].p.code = LABEL_API;
 
 	// initialize P01〜P04
 	for (i = j = 0; i < osecpu->labelcnt; i++) {
@@ -638,6 +650,7 @@ int do_next_instruction(struct Osecpu* osecpu)
 {
 	struct Instruction* inst;
 	if (osecpu->error) return 0;
+	if (!osecpu->is_initialized) return 0;
 	if (setjmp(osecpu->abort_to) == 0) {
 		inst = fetch_instruction(osecpu);
 		if (!inst) {
@@ -652,13 +665,9 @@ int do_next_instruction(struct Osecpu* osecpu)
 	return 1;
 }
 
-int run_b32(struct Osecpu* osecpu)
+int restart_osecpu(struct Osecpu* osecpu)
 {
-	struct Instruction* inst;
-
-	// TODO: ブレーク機能とかはまだついてないのでとりあえずここで初期化する
 	initialize_osecpu(osecpu);
-
 	while (do_next_instruction(osecpu));
 	return !!osecpu->error;
 }

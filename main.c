@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	run_b32(osecpu);
+	restart_osecpu(osecpu);
 	if (osecpu->error) {
 		fprintf(stderr, "Error: %s\n", get_error_text(osecpu->error));
 	}
