@@ -23,8 +23,6 @@ struct WindowQueue
 	} arg;
 };
 
-static int initialized = 0;
-
 void window_destroy(GtkWidget* _window, gpointer data)
 {
 	struct OsecpuWindow* window = data;
@@ -99,8 +97,7 @@ struct OsecpuWindow* window_create(int width, int height)
 	struct OsecpuWindow* window;
 	cairo_t* cr;
 
-	if (!initialized) {
-		initialized = 1;
+	if (!gtk_init_check(NULL, NULL)) {
 		gtk_init(NULL, NULL);
 	}
 	window = (struct OsecpuWindow*)malloc(sizeof(struct OsecpuWindow));
