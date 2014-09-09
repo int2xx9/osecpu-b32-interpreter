@@ -225,7 +225,7 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 					break;
 				case 0x1ff:
 					B32FETCH_HELPER(rem.rem1ff.arg1, CHECK_EXPR, inst->arg.rem.rem1ff.arg1 != 0);
-					inst->arg.rem.rem1ff.enabled = 1;
+					inst->breakpoint = 1;
 					break;
 				default:
 					*error = ERROR_INVALID_INSTRUCTION;
@@ -602,7 +602,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 			do_compare_instruction(osecpu, inst);
 			break;
 		case REM:
-			if (inst->arg.rem.rem1ff.enabled) {
+			if (inst->breakpoint) {
 				abort_vm(osecpu, 0, 2);
 			}
 			break;

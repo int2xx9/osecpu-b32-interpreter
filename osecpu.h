@@ -86,6 +86,7 @@ enum InstructionId
 struct Instruction
 {
 	enum InstructionId id;
+	int breakpoint;
 	union
 	{
 		struct
@@ -189,7 +190,6 @@ struct Instruction
 			} rem34;
 			struct
 			{
-				int enabled;
 				int arg1;
 			} rem1ff;
 		} rem;
