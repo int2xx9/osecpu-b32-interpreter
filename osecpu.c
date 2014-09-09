@@ -672,3 +672,9 @@ int restart_osecpu(struct Osecpu* osecpu)
 	return !!osecpu->error;
 }
 
+int continue_osecpu(struct Osecpu* osecpu)
+{
+	while (do_next_instruction(osecpu));
+	return !!osecpu->error;
+}
+

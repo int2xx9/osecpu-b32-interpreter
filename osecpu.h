@@ -241,6 +241,7 @@ void coredump(struct Osecpu*);
 void initialize_osecpu(struct Osecpu*);
 int do_next_instruction(struct Osecpu*);
 int restart_osecpu(struct Osecpu*);
+int continue_osecpu(struct Osecpu*);
 
 #endif
 
