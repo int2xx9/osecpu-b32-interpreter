@@ -185,6 +185,11 @@ struct Instruction
 			{
 				int arg1;
 			} rem34;
+			struct
+			{
+				int enabled;
+				int arg1;
+			} rem1ff;
 		} rem;
 	} arg;
 };
@@ -231,7 +236,7 @@ struct Osecpu
 	struct OsecpuWindow* window;
 };
 
-void abort_vm(struct Osecpu*, int);
+void abort_vm(struct Osecpu*, int, int);
 const char* get_error_text(int);
 struct Osecpu* init_osecpu();
 void free_osecpu(struct Osecpu*);

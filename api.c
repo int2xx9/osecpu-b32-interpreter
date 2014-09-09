@@ -29,15 +29,15 @@ int get_color(struct Osecpu* osecpu, int mode, int color)
 	{
 		case MODE_COL3:
 			if (color < 0 || color >= sizeof(COL3TBL)/sizeof(COL3TBL[0]))
-				abort_vm(osecpu, ERROR_INVALID_COLOR);
+				abort_vm(osecpu, ERROR_INVALID_COLOR, 1);
 			ret_color = COL3TBL[color];
 			break;
 		case MODE_COL24:
-			if (color > 0xff0000) abort_vm(osecpu, ERROR_INVALID_COLOR);
+			if (color > 0xff0000) abort_vm(osecpu, ERROR_INVALID_COLOR, 1);
 			ret_color = color;
 			break;
 		default:
-			abort_vm(osecpu, ERROR_INVALID_MODE);
+			abort_vm(osecpu, ERROR_INVALID_MODE, 1);
 			return -1;
 	}
 	return ret_color;
@@ -158,7 +158,7 @@ void call_api(struct Osecpu* osecpu)
 			api0009_sleep(osecpu);
 			break;
 		default:
-			abort_vm(osecpu, ERROR_NOT_IMPLEMENTED_API);
+			abort_vm(osecpu, ERROR_NOT_IMPLEMENTED_API, 1);
 			break;
 	}
 	osecpu->pregisters[0x3f] = osecpu->pregisters[0x30];
