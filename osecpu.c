@@ -453,7 +453,7 @@ void coredump(struct Osecpu* osecpu)
 
 	printf("\n");
 
-	printf("vm exit code: %d (%s)\n", osecpu->error, get_error_text(osecpu->error));
+	printf("vm error code: %d (%s)\n", osecpu->error, get_error_text(osecpu->error));
 }
 
 void do_operate_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
