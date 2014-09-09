@@ -64,6 +64,7 @@ struct Osecpu* init_osecpu()
 void free_osecpu(struct Osecpu* osecpu)
 {
 	int i;
+	window_wait_quit(osecpu->window);
 	if (osecpu->code) free(osecpu->code);
 	if (osecpu->window) window_free(osecpu->window);
 	for (i = 0; i < osecpu->labelcnt; i++) {
@@ -654,7 +655,6 @@ int run_b32(struct Osecpu* osecpu)
 		return -1;
 	}
 
-	window_wait_quit(osecpu->window);
 	return 0;
 }
 
