@@ -21,13 +21,13 @@ void debugger_free(OsecpuDebugger* debugger)
 void debugger_open(OsecpuDebugger* debugger)
 {
 	char cmdbuf[1024];
-	printf("breakpoint.\n");
 	while (1) {
 		printf("debug> ");
 		fgets(cmdbuf, 1024, stdin);
 		cmdbuf[strlen(cmdbuf)-1] = 0;
 		if (strcmp(cmdbuf, "continue") == 0) {
 			if (continue_osecpu(debugger->osecpu) == 2) {
+				printf("breakpoint.\n");
 				debugger_open(debugger);
 			}
 			return;
