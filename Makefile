@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=
 MAKE=make
 TARGET=osecpu
-SOURCE=main.c osecpu.c api.c window.c
+SOURCE=main.c osecpu.c api.c window.c debugger.c
 RM=rm -f
 
 .PHONY: default all test clean

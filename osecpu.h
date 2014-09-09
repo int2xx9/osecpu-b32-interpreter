@@ -1,6 +1,8 @@
 #ifndef _OSECPU_H_
 #define _OSECPU_H_
 
+#include "debugger.h"
+
 #include <inttypes.h>
 #include <setjmp.h>
 
