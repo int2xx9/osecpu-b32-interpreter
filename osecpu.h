@@ -237,6 +237,7 @@ void free_osecpu(struct Osecpu*);
 int load_b32_from_file(struct Osecpu*, const char*);
 int load_b32_from_memory(struct Osecpu*, const uint8_t*, long);
 void coredump(struct Osecpu*);
+int do_next_instruction(struct Osecpu*);
 int run_b32(struct Osecpu*);
 
 #endif

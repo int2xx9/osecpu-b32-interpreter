@@ -634,6 +634,24 @@ void initialize_osecpu(struct Osecpu* osecpu)
 	}
 }
 
+int do_next_instruction(struct Osecpu* osecpu)
+{
+	struct Instruction* inst;
+	if (osecpu->error) return 0;
+	if (setjmp(osecpu->abort_to) == 0) {
+		inst = fetch_instruction(osecpu);
+		if (!inst) {
+			if (osecpu->pregisters[0x3f].p.code != LABEL_API) return 0;
+			call_api(osecpu);
+		} else {
+			do_instruction(osecpu, inst);
+		}
+	} else {
+		return 0;
+	}
+	return 1;
+}
+
 int run_b32(struct Osecpu* osecpu)
 {
 	struct Instruction* inst;
@@ -641,20 +659,7 @@ int run_b32(struct Osecpu* osecpu)
 	// TODO: ブレーク機能とかはまだついてないのでとりあえずここで初期化する
 	initialize_osecpu(osecpu);
 
-	if (setjmp(osecpu->abort_to) == 0) {
-		while (1) {
-			inst = fetch_instruction(osecpu);
-			if (!inst) {
-				if (osecpu->pregisters[0x3f].p.code != LABEL_API) break;
-				call_api(osecpu);
-			} else {
-				do_instruction(osecpu, inst);
-			}
-		}
-	} else {
-		return -1;
-	}
-
-	return 0;
+	while (do_next_instruction(osecpu));
+	return !!osecpu->error;
 }
 
