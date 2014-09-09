@@ -4,12 +4,83 @@
 #include <string.h>
 #include <gtkmm.h>
 
+class ControlWidget : public Gtk::HBox
+{
+	Gtk::Button button_continue_pause;
+	Gtk::Button button_stepover;
+public:
+	ControlWidget() :
+		button_continue_pause("Continue / Pause"),
+		button_stepover("Stepover")
+	{
+		pack_start(button_continue_pause, Gtk::PACK_SHRINK);
+		pack_start(button_stepover, Gtk::PACK_SHRINK);
+	}
+};
+
+class RegistersWidget : public Gtk::VBox
+{
+	Gtk::Label label;
+	Gtk::ScrolledWindow scrwin;
+	Gtk::TreeView treeview;
+public:
+	RegistersWidget() : label("Registers", Gtk::ALIGN_START, Gtk::ALIGN_LEFT)
+	{
+		pack_start(label, Gtk::PACK_SHRINK);
+		scrwin.add(treeview);
+		pack_start(scrwin);
+	}
+};
+
+class LabelsWidget : public Gtk::VBox
+{
+	Gtk::Label label;
+	Gtk::ScrolledWindow scrwin;
+	Gtk::TreeView treeview;
+public:
+	LabelsWidget() : label("Labels", Gtk::ALIGN_START, Gtk::ALIGN_LEFT)
+	{
+		pack_start(label, Gtk::PACK_SHRINK);
+		scrwin.add(treeview);
+		pack_start(scrwin);
+	}
+};
+
+class CodeWidget : public Gtk::VBox
+{
+	Gtk::Label label;
+	Gtk::ScrolledWindow scrwin;
+	Gtk::TreeView treeview;
+public:
+	CodeWidget() : label("Code", Gtk::ALIGN_START, Gtk::ALIGN_LEFT)
+	{
+		pack_start(label, Gtk::PACK_SHRINK);
+		scrwin.add(treeview);
+		pack_start(scrwin);
+	}
+};
+
 class DebuggerWindow : public Gtk::Window
 {
+	Gtk::VBox vbox, vbox_left, vbox_right;
+	Gtk::HBox hbox;
+	ControlWidget widget_control;
+	RegistersWidget widget_registers;
+	LabelsWidget widget_labels;
+	CodeWidget widget_code;
 public:
 	DebuggerWindow()
 	{
 		set_title("OSECPU Debugger");
+		vbox_left.pack_start(widget_control, Gtk::PACK_SHRINK);
+		vbox_left.pack_start(widget_registers);
+		vbox_left.pack_start(widget_labels);
+		vbox_right.pack_start(widget_code);
+		hbox.pack_start(vbox_left);
+		hbox.pack_start(vbox_right);
+		vbox.pack_start(hbox);
+		add(vbox);
+		show_all_children();
 	}
 };
 
