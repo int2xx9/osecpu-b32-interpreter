@@ -2,6 +2,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gtkmm.h>
+
+class DebuggerWindow : public Gtk::Window
+{
+public:
+	DebuggerWindow()
+	{
+		set_title("OSECPU Debugger");
+	}
+};
+
+void* create_debugger_window_thread(void* data)
+{
+	OsecpuDebugger* debugger = (OsecpuDebugger*)data;
+	Gtk::Main gtk(NULL, NULL);
+	debugger->window = new DebuggerWindow();
+	Gtk::Main::run(*(DebuggerWindow*)debugger->window);
+}
 
 extern "C" OsecpuDebugger* debugger_init(struct Osecpu* osecpu)
 {
@@ -10,6 +28,12 @@ extern "C" OsecpuDebugger* debugger_init(struct Osecpu* osecpu)
 	if (!debugger) return NULL;
 	memset(debugger, 0, sizeof(OsecpuDebugger));
 	debugger->osecpu = osecpu;
+
+	pthread_create(&debugger->windowThread, NULL, create_debugger_window_thread, debugger);
+
+	while (!debugger->window);
+	((Gtk::Window*)debugger->window)->show_all_children();
+
 	return debugger;
 }
 
