@@ -63,12 +63,10 @@ void* osecpu_thread(void* data)
 					if (osecpu->status == OSECPU_STATUS_PAUSED) {
 						nextinst_ret = do_next_instruction(osecpu);
 						if (nextinst_ret == 2) {
-							printf("d\n");
 							osecpu->status = OSECPU_STATUS_BREAK;
 						} else if (nextinst_ret != 1) {
 							pthread_exit((void*)nextinst_ret);
 						}
-						printf("%d %d\n", osecpu->pregisters[0x3f].p.code, osecpu->codelen);
 						if (osecpu->pregisters[0x3f].p.code >= osecpu->codelen) {
 							osecpu->status = OSECPU_STATUS_EXIT;
 						}
@@ -78,10 +76,8 @@ void* osecpu_thread(void* data)
 					break;
 				case CONTINUE:
 					if (osecpu->status == OSECPU_STATUS_PAUSED) {
-						printf("a\n");
 						osecpu->status = OSECPU_STATUS_RUNNING;
 					} else {
-						printf("b\n");
 						// error
 					}
 					break;
