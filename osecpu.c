@@ -689,8 +689,7 @@ int restart_osecpu(struct Osecpu* osecpu)
 {
 	int nextinst_ret;
 	initialize_osecpu(osecpu);
-	while ((nextinst_ret=do_next_instruction(osecpu)) == 1);
-	return nextinst_ret;
+	return continue_osecpu(osecpu);
 }
 
 int continue_osecpu(struct Osecpu* osecpu)
