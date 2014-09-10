@@ -60,6 +60,7 @@ void free_osecpu(struct Osecpu* osecpu)
 {
 	int i;
 	window_wait_quit(osecpu->window);
+	if (osecpu->code) free(osecpu->orig_code);
 	if (osecpu->code) free(osecpu->code);
 	if (osecpu->window) window_free(osecpu->window);
 	for (i = 0; i < osecpu->labelcnt; i++) {
@@ -382,9 +383,11 @@ int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 		return -1;
 	}
 
+	osecpu->orig_code = code;
+	osecpu->orig_codelen = len;
+
 	if (load_b32_from_memory(osecpu, code+8, len-8) != 0) return -1;
 
-	free(code);
 	return 0;
 }
 

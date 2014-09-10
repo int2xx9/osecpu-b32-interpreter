@@ -229,6 +229,8 @@ struct Osecpu
 	int registers[0x40];
 	struct OsecpuPointer pregisters[0x40];
 	int dregisters[4];
+	uint8_t* orig_code;	// for debugger
+	int orig_codelen;
 	struct Instruction* code;
 	int codelen;
 	struct Label* labels;

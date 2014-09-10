@@ -1,4 +1,7 @@
 #include "debugger.h"
+extern "C" {
+#include "reverse_aska.h"
+}
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,12 +79,15 @@ class CodeWidget : public Gtk::VBox
 	Gtk::Label label;
 	Gtk::ScrolledWindow scrwin;
 	Gtk::TreeView treeview;
-	Gtk::TreeModelColumn<Glib::ustring> inst_number;
+	Gtk::TreeModelColumn<int> inst_number;
 	Gtk::TreeModelColumn<Glib::ustring> inst_string;
 	Gtk::TreeModel::ColumnRecord record;
 	Glib::RefPtr<Gtk::ListStore> liststore;
+	const OsecpuDebugger& debugger;
 public:
-	CodeWidget() : label("Code", Gtk::ALIGN_START, Gtk::ALIGN_LEFT)
+	CodeWidget(const OsecpuDebugger& debugger) :
+		label("Code", Gtk::ALIGN_START, Gtk::ALIGN_LEFT),
+		debugger(debugger)
 	{
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
@@ -93,6 +99,32 @@ public:
 		treeview.set_model(liststore);
 		treeview.append_column("Instruction #", inst_number);
 		treeview.append_column("ASKA", inst_string);
+
+		Reload();
+	}
+
+	int Reload()
+	{
+		ReverseAska* raska;
+		Gtk::TreeModel::Row row;
+		int i;
+
+		// TODO: 新しい逆コンパイルされたコードを入れる前に全部消さないといけない
+
+		raska = reverse_aska_init(debugger.osecpu->orig_code, debugger.osecpu->orig_codelen);
+		if (!raska) return 0;
+
+		for (i = 0; i < raska->idxcnt; i++) {
+			struct ReverseAskaInstruction* inst;
+			inst = get_instruction_string(raska, i);
+			row = *liststore->append();
+			row[inst_number] = i;
+			row[inst_string] = inst->inst_str;
+		}
+
+		reverse_aska_free(raska);
+
+		return 1;
 	}
 };
 
@@ -104,8 +136,11 @@ class DebuggerWindow : public Gtk::Window
 	RegistersWidget widget_registers;
 	LabelsWidget widget_labels;
 	CodeWidget widget_code;
+	const OsecpuDebugger& debugger;
 public:
-	DebuggerWindow()
+	DebuggerWindow(const OsecpuDebugger& debugger) :
+		debugger(debugger),
+		widget_code(debugger)
 	{
 		resize(500, 500);
 		set_title("OSECPU Debugger");
@@ -125,7 +160,7 @@ void* create_debugger_window_thread(void* data)
 {
 	OsecpuDebugger* debugger = (OsecpuDebugger*)data;
 	Gtk::Main gtk(NULL, NULL);
-	debugger->window = new DebuggerWindow();
+	debugger->window = new DebuggerWindow(*debugger);
 	Gtk::Main::run(*(DebuggerWindow*)debugger->window);
 }
 
@@ -153,6 +188,7 @@ extern "C" void debugger_free(OsecpuDebugger* debugger)
 extern "C" void debugger_open(OsecpuDebugger* debugger)
 {
 	char cmdbuf[1024];
+
 	while (1) {
 		printf("debug> ");
 		fgets(cmdbuf, 1024, stdin);
