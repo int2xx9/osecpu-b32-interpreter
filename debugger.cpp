@@ -148,7 +148,7 @@ public:
 		vbox_left.pack_start(widget_registers);
 		vbox_left.pack_start(widget_labels);
 		vbox_right.pack_start(widget_code);
-		hbox.pack_start(vbox_left);
+		hbox.pack_start(vbox_left, Gtk::PACK_SHRINK);
 		hbox.pack_start(vbox_right);
 		vbox.pack_start(hbox);
 		add(vbox);
