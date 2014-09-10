@@ -60,14 +60,14 @@ void free_osecpu(struct Osecpu* osecpu)
 {
 	int i;
 	window_wait_quit(osecpu->window);
-	if (osecpu->code) free(osecpu->orig_code);
-	if (osecpu->code) free(osecpu->code);
-	if (osecpu->window) window_free(osecpu->window);
+	free(osecpu->orig_code);
+	free(osecpu->code);
+	window_free(osecpu->window);
 	for (i = 0; i < osecpu->labelcnt; i++) {
 		// Label.data must be NULL if it has no data
 		free(osecpu->labels[i].data);
 	}
-	if (osecpu->labels) free(osecpu->labels);
+	free(osecpu->labels);
 	free(osecpu);
 }
 

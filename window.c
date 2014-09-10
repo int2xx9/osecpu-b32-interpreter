@@ -129,6 +129,7 @@ void window_free(struct OsecpuWindow* window)
 {
 	struct WindowQueue* qdata;
 	void* dummy;
+	if (!window) return;
 	qdata = (struct WindowQueue*)malloc(sizeof(struct WindowQueue));
 	if (!qdata) return;
 	qdata->type = QUEUE_DESTROY;
