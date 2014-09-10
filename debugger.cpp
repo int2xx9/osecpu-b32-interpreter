@@ -28,10 +28,14 @@ class RegistersWidget : public Gtk::VBox
 	Gtk::TreeView treeview;
 	Gtk::TreeModelColumn<Glib::ustring> name;
 	Gtk::TreeModelColumn<int> value;
+	Gtk::TreeModelColumn<Glib::ustring> type;
 	Gtk::TreeModel::ColumnRecord record;
 	Glib::RefPtr<Gtk::ListStore> liststore;
+	const OsecpuDebugger& debugger;
 public:
-	RegistersWidget() : label("Registers", Gtk::ALIGN_START, Gtk::ALIGN_LEFT)
+	RegistersWidget(const OsecpuDebugger& debugger) :
+		label("Registers", Gtk::ALIGN_START, Gtk::ALIGN_LEFT),
+		debugger(debugger)
 	{
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
@@ -39,10 +43,71 @@ public:
 
 		record.add(name);
 		record.add(value);
+		record.add(type);
 		liststore = Gtk::ListStore::create(record);
 		treeview.set_model(liststore);
 		treeview.append_column("Name", name);
 		treeview.append_column("Value", value);
+		treeview.append_column("Type", type);
+
+		Reload();
+	}
+
+	int Reload()
+	{
+		Gtk::TreeModel::Row row;
+		int i;
+
+		// TODO: 新しいレジスタの情報を入れる前に全部消さないといけない
+
+		for (i = 0; i < 0x40; i++) {
+			char regname_c[4];
+			Glib::ustring regname;
+			Glib::ustring type_name("-");
+
+			snprintf(regname_c, 4, "R%02X", i);
+			regname = regname_c;
+
+			row = *liststore->append();
+			row[name] = regname;
+			row[value] = debugger.osecpu->registers[i];
+			row[type] = type_name;
+		}
+
+		for (i = 0; i < 0x40; i++) {
+			char regname_c[4];
+			char type_name_c[16];
+			Glib::ustring regname;
+			Glib::ustring type_name;
+
+			snprintf(regname_c, 4, "P%02X", i);
+			regname = regname_c;
+
+			snprintf(type_name_c, 16, "%d", debugger.osecpu->pregisters[i].type);
+			type_name = type_name_c;
+
+			row = *liststore->append();
+			row[name] = regname;
+			row[value] = debugger.osecpu->pregisters[i].p.code;
+			row[type] = type_name;
+		}
+
+		for (i = 0; i < 4; i++) {
+			char regname_c[4];
+			char type_name_c[16];
+			Glib::ustring regname;
+			Glib::ustring type_name("-");
+
+			snprintf(regname_c, 4, "D%02X", i);
+			regname = regname_c;
+
+			row = *liststore->append();
+			row[name] = regname;
+			row[value] = debugger.osecpu->dregisters[i];
+			row[type] = type_name;
+		}
+
+		return 1;
 	}
 };
 
@@ -141,6 +206,7 @@ class DebuggerWindow : public Gtk::Window
 public:
 	DebuggerWindow(const OsecpuDebugger& debugger) :
 		debugger(debugger),
+		widget_registers(debugger),
 		widget_code(debugger)
 	{
 		resize(500, 500);
