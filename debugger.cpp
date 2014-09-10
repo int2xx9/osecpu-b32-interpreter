@@ -116,26 +116,58 @@ class LabelsWidget : public Gtk::VBox
 	Gtk::Label label;
 	Gtk::ScrolledWindow scrwin;
 	Gtk::TreeView treeview;
-	Gtk::TreeModelColumn<Glib::ustring> id;
-	Gtk::TreeModelColumn<Glib::ustring> codepos;
+	Gtk::TreeModelColumn<int> number;
+	Gtk::TreeModelColumn<int> codepos;
 	Gtk::TreeModelColumn<Glib::ustring> type;
 	Gtk::TreeModel::ColumnRecord record;
 	Glib::RefPtr<Gtk::ListStore> liststore;
+	const OsecpuDebugger& debugger;
 public:
-	LabelsWidget() : label("Labels", Gtk::ALIGN_START, Gtk::ALIGN_LEFT)
+	LabelsWidget(const OsecpuDebugger& debugger) :
+		label("Labels", Gtk::ALIGN_START, Gtk::ALIGN_LEFT),
+		debugger(debugger)
 	{
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
 		pack_start(scrwin);
 
-		record.add(id);
+		record.add(number);
 		record.add(codepos);
 		record.add(type);
 		liststore = Gtk::ListStore::create(record);
 		treeview.set_model(liststore);
-		treeview.append_column("ID", id);
+		treeview.append_column("#", number);
 		treeview.append_column("Pos", codepos);
-		treeview.append_column("Type", type);
+		treeview.append_column("Type / Length", type);
+
+		Reload();
+	}
+
+	int Reload()
+	{
+		Gtk::TreeModel::Row row;
+		int i;
+
+		liststore->clear();
+
+		for (i = 0; i < debugger.osecpu->labelcnt; i++) {
+			Glib::ustring type_name;
+
+			if (debugger.osecpu->labels[i].data) {
+				char type_name_c[32];
+				snprintf(type_name_c, 32, "data (T_UINT8) (%dbytes)", debugger.osecpu->labels[i].datalen);
+				type_name = type_name_c;
+			} else {
+				type_name = "code";
+			}
+
+			row = *liststore->append();
+			row[number] = debugger.osecpu->labels[i].id;
+			row[codepos] = debugger.osecpu->labels[i].pos;
+			row[type] = type_name;
+		}
+
+		return 1;
 	}
 };
 
@@ -207,6 +239,7 @@ public:
 	DebuggerWindow(const OsecpuDebugger& debugger) :
 		debugger(debugger),
 		widget_registers(debugger),
+		widget_labels(debugger),
 		widget_code(debugger)
 	{
 		resize(500, 500);
