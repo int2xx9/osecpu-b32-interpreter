@@ -242,11 +242,12 @@ public:
 		widget_labels(debugger),
 		widget_code(debugger)
 	{
-		resize(500, 500);
+		resize(800, 500);
 		set_title("OSECPU Debugger");
 		vbox_left.pack_start(widget_control, Gtk::PACK_SHRINK);
 		vbox_left.pack_start(widget_registers);
 		vbox_left.pack_start(widget_labels);
+		vbox_left.set_size_request(300);
 		vbox_right.pack_start(widget_code);
 		hbox.pack_start(vbox_left, Gtk::PACK_SHRINK);
 		hbox.pack_start(vbox_right);
