@@ -1,6 +1,7 @@
 #include "debugger.h"
 extern "C" {
 #include "reverse_aska.h"
+#include "window.h"
 }
 #include <stdio.h>
 #include <stdlib.h>
@@ -328,6 +329,7 @@ extern "C" OsecpuDebugger* debugger_init(struct Osecpu* osecpu)
 
 extern "C" void debugger_free(OsecpuDebugger* debugger)
 {
+	free(debugger->checkpoint);
 	free(debugger);
 }
 
@@ -366,8 +368,42 @@ extern "C" void debugger_open(OsecpuDebugger* debugger)
 			}
 		} else if (strcmp(cmdbuf, "coredump") == 0) {
 			coredump(debugger->osecpu);
+		} else if (strcmp(cmdbuf, "checkpoint") == 0) {
+			int i;
+			if (!debugger->checkpoint) {
+				debugger->checkpoint = (struct Osecpu*)malloc(sizeof(struct Osecpu));
+			}
+			memcpy(debugger->checkpoint, debugger->osecpu, sizeof(struct Osecpu));
+			debugger->checkpoint_surface = window_copy_surface(NULL, debugger->osecpu->window->surface);
+			debugger->checkpoint_labels = (struct Label*)malloc(sizeof(struct Label) * debugger->osecpu->labelcnt);
+			for (i = 0; i < debugger->osecpu->labelcnt; i++) {
+				debugger->checkpoint_labels[i] = debugger->osecpu->labels[i];
+				if (debugger->checkpoint_labels[i].data) {
+					debugger->checkpoint_labels[i].data = (uint8_t*)malloc(debugger->checkpoint_labels[i].datalen);
+					memcpy(debugger->checkpoint_labels[i].data, debugger->osecpu->labels[i].data, debugger->checkpoint_labels[i].datalen);
+				}
+			}
+			debugger->checkpoint_labelcnt = debugger->osecpu->labelcnt;
+		} else if (strcmp(cmdbuf, "replay") == 0) {
+			int i;
+			struct OsecpuCommand* cmd = (struct OsecpuCommand*)malloc(sizeof(struct OsecpuCommand));
+			OsecpuWindow* window;
+			struct Label* labels;
+			cmd->type = OsecpuCommand::PAUSE_REQUEST;
+			g_async_queue_push(debugger->osecpu->osecpu_thread_queue, cmd);
+			window = debugger->osecpu->window;
+			labels = debugger->osecpu->labels;
+			memcpy(debugger->osecpu, debugger->checkpoint, sizeof(struct Osecpu));
+			debugger->osecpu->window = window;
+			debugger->osecpu->labels = labels;
+			window_copy_surface(window->surface, debugger->checkpoint_surface);
+			for (i = 0; i < debugger->checkpoint_labelcnt; i++) {
+				if (debugger->osecpu->labels[i].data) {
+					memcpy(debugger->osecpu->labels[i].data, debugger->checkpoint_labels[i].data, debugger->osecpu->labels[i].datalen);
+				}
+			}
 		} else {
-			printf("command: continue, next, coredump\n");
+			printf("command: continue, next, coredump, checkpoint, replay\n");
 		}
 	}
 }

@@ -168,6 +168,22 @@ void window_resize(struct OsecpuWindow* window, int width, int height)
 	g_async_queue_push(window->queue, qdata);
 }
 
+cairo_surface_t* window_copy_surface(cairo_surface_t* to, cairo_surface_t* from)
+{
+	cairo_t* cr;
+	int width, height;
+	width = cairo_image_surface_get_width(from);
+	height = cairo_image_surface_get_height(from);
+	if (to == NULL) {
+		to = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+	}
+	cr = cairo_create(to);
+	cairo_set_source_surface(cr, from, 0, 0);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+	return to;
+}
+
 int window_get_pixel_color(struct OsecpuWindow* window, int x, int y)
 {
 	// XXX: 必ずARGB32形式であると仮定して処理が書いてある

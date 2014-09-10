@@ -3,6 +3,7 @@
 
 #include "osecpu.h"
 #include <pthread.h>
+#include <cairo.h>
 
 typedef struct _OsecpuDebugger
 {
@@ -11,6 +12,10 @@ typedef struct _OsecpuDebugger
 	// This header is loaded by C sources but C cannot understand gtkmm.h
 	void* window;
 	pthread_t windowThread;
+	struct Osecpu* checkpoint;
+	cairo_surface_t* checkpoint_surface;
+	struct Label* checkpoint_labels;
+	int checkpoint_labelcnt;
 } OsecpuDebugger;
 
 #ifdef __cplusplus
