@@ -18,6 +18,17 @@ public:
 	{
 		pack_start(button_continue_pause, Gtk::PACK_SHRINK);
 		pack_start(button_stepover, Gtk::PACK_SHRINK);
+
+		button_continue_pause.signal_clicked().connect(sigc::mem_fun(this, &ControlWidget::on_continue_pause_button_clicked));
+		button_stepover.signal_clicked().connect(sigc::mem_fun(this, &ControlWidget::on_stepover_button_clicked));
+	}
+
+	void on_continue_pause_button_clicked()
+	{
+	}
+
+	void on_stepover_button_clicked()
+	{
 	}
 };
 
