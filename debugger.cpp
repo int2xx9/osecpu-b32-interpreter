@@ -10,26 +10,23 @@ extern "C" {
 class ControlWidget : public Gtk::HBox
 {
 	Gtk::Button button_continue_pause;
-	Gtk::Button button_stepover;
+	Gtk::Button button_step;
+	const OsecpuDebugger& debugger;
 public:
-	ControlWidget() :
+	ControlWidget(const OsecpuDebugger& debugger) :
 		button_continue_pause("Continue / Pause"),
-		button_stepover("Stepover")
+		button_step("Step"),
+		debugger(debugger)
 	{
 		pack_start(button_continue_pause, Gtk::PACK_SHRINK);
-		pack_start(button_stepover, Gtk::PACK_SHRINK);
+		pack_start(button_step, Gtk::PACK_SHRINK);
 
 		button_continue_pause.signal_clicked().connect(sigc::mem_fun(this, &ControlWidget::on_continue_pause_button_clicked));
-		button_stepover.signal_clicked().connect(sigc::mem_fun(this, &ControlWidget::on_stepover_button_clicked));
+		button_step.signal_clicked().connect(sigc::mem_fun(this, &ControlWidget::on_step_button_clicked));
 	}
 
-	void on_continue_pause_button_clicked()
-	{
-	}
-
-	void on_stepover_button_clicked()
-	{
-	}
+	void on_continue_pause_button_clicked();
+	void on_step_button_clicked();
 };
 
 class RegistersWidget : public Gtk::VBox
@@ -243,6 +240,7 @@ class DebuggerWindow : public Gtk::Window
 public:
 	DebuggerWindow(const OsecpuDebugger& debugger) :
 		debugger(debugger),
+		widget_control(debugger),
 		widget_registers(debugger),
 		widget_labels(debugger),
 		widget_code(debugger)
@@ -269,6 +267,44 @@ public:
 		widget_code.Reload();
 	}
 };
+
+void ControlWidget::on_continue_pause_button_clicked()
+{
+	struct OsecpuCommand* cmd = (struct OsecpuCommand*)malloc(sizeof(struct OsecpuCommand));
+	if (debugger.osecpu->status == OSECPU_STATUS_RUNNING) {
+		cmd->type = OsecpuCommand::PAUSE_REQUEST;
+		g_async_queue_push(debugger.osecpu->osecpu_thread_queue, cmd);
+		while (debugger.osecpu->status != OSECPU_STATUS_PAUSED);
+		((DebuggerWindow*)debugger.window)->Reload();
+		return;
+	}
+	if (debugger.osecpu->status == OSECPU_STATUS_NOT_INITIAlIZED) {
+		cmd->type = OsecpuCommand::RESTART;
+	} else if (debugger.osecpu->status == OSECPU_STATUS_RUNNING) {
+		cmd->type = OsecpuCommand::PAUSE_REQUEST;
+	} else if (debugger.osecpu->status == OSECPU_STATUS_PAUSED) {
+		cmd->type = OsecpuCommand::CONTINUE;
+	}
+	g_async_queue_push(debugger.osecpu->osecpu_thread_queue, cmd);
+}
+
+void ControlWidget::on_step_button_clicked()
+{
+	if (debugger.osecpu->status == OSECPU_STATUS_NOT_INITIAlIZED) {
+		struct OsecpuCommand* cmd = (struct OsecpuCommand*)malloc(sizeof(struct OsecpuCommand));
+		cmd->type = OsecpuCommand::INITIALIZE;
+		g_async_queue_push(debugger.osecpu->osecpu_thread_queue, cmd);
+		cmd = (struct OsecpuCommand*)malloc(sizeof(struct OsecpuCommand));
+		cmd->type = OsecpuCommand::NEXT;
+		g_async_queue_push(debugger.osecpu->osecpu_thread_queue, cmd);
+
+	} else if (debugger.osecpu->status == OSECPU_STATUS_PAUSED) {
+		struct OsecpuCommand* cmd = (struct OsecpuCommand*)malloc(sizeof(struct OsecpuCommand));
+		cmd->type = OsecpuCommand::NEXT;
+		g_async_queue_push(debugger.osecpu->osecpu_thread_queue, cmd);
+	}
+	((DebuggerWindow*)debugger.window)->Reload();
+}
 
 void* create_debugger_window_thread(void* data)
 {
@@ -309,9 +345,18 @@ extern "C" void debugger_open(OsecpuDebugger* debugger)
 		fgets(cmdbuf, 1024, stdin);
 		cmdbuf[strlen(cmdbuf)-1] = 0;
 		if (strcmp(cmdbuf, "continue") == 0) {
-			if (continue_osecpu(debugger->osecpu) == 2) {
-				printf("breakpoint.\n");
-				debugger_open(debugger);
+			if (debugger->osecpu->status == OSECPU_STATUS_NOT_INITIAlIZED) {
+				restart_osecpu(debugger->osecpu);
+				if (wait_osecpu_exit(debugger->osecpu) == 2) {
+					printf("breakpoint.\n");
+					debugger_open(debugger);
+				}
+			} else if (debugger->osecpu->status == OSECPU_STATUS_PAUSED) {
+				continue_osecpu(debugger->osecpu);
+				if (wait_osecpu_exit(debugger->osecpu) == 2) {
+					printf("breakpoint.\n");
+					debugger_open(debugger);
+				}
 			}
 			return;
 		} else if (strcmp(cmdbuf, "next") == 0) {

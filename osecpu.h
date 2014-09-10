@@ -3,6 +3,8 @@
 
 #include "debugger.h"
 
+#include <pthread.h>
+#include <glib.h>
 #include <inttypes.h>
 #include <setjmp.h>
 
@@ -223,9 +225,30 @@ struct OsecpuPointer
 	} p;
 };
 
+enum OsecpuStatus
+{
+	OSECPU_STATUS_NOT_INITIAlIZED = 0,
+	OSECPU_STATUS_PAUSED,
+	OSECPU_STATUS_RUNNING,
+	OSECPU_STATUS_EXIT,
+	OSECPU_STATUS_ERROR,
+};
+
+struct OsecpuCommand
+{
+	enum
+	{
+		INITIALIZE,
+		NEXT,
+		CONTINUE,
+		RESTART,
+		PAUSE_REQUEST,
+	} type;
+};
+
 struct Osecpu
 {
-	int is_initialized;
+	enum OsecpuStatus status;
 	int registers[0x40];
 	struct OsecpuPointer pregisters[0x40];
 	int dregisters[4];
@@ -238,6 +261,9 @@ struct Osecpu
 	int error;
 	jmp_buf abort_to;
 	struct OsecpuWindow* window;
+	pthread_t osecpu_thread;
+	GAsyncQueue* osecpu_thread_queue;
+	int exitcode;
 };
 
 #ifdef __cplusplus
@@ -249,11 +275,12 @@ struct Osecpu* init_osecpu();
 void free_osecpu(struct Osecpu*);
 int load_b32_from_file(struct Osecpu*, const char*);
 int load_b32_from_memory(struct Osecpu*, const uint8_t*, long);
+int wait_osecpu_exit(struct Osecpu*);
 void coredump(struct Osecpu*);
 void initialize_osecpu(struct Osecpu*);
 int do_next_instruction(struct Osecpu*);
-int restart_osecpu(struct Osecpu*);
-int continue_osecpu(struct Osecpu*);
+void restart_osecpu(struct Osecpu*);
+void continue_osecpu(struct Osecpu*);
 #ifdef __cplusplus
 }
 #endif

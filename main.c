@@ -68,7 +68,8 @@ int main(int argc, char** argv)
 	if (cmdline.debug_at_startup) {
 		debugger_open(debugger);
 	}
-	osecpu_ret = restart_osecpu(osecpu);
+	restart_osecpu(osecpu);
+	osecpu_ret = wait_osecpu_exit(osecpu);
 	if (osecpu_ret == 2) {
 		printf("Breakpoint.\n");
 		debugger_open(debugger);

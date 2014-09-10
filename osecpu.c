@@ -47,12 +47,68 @@ const char* get_error_text(int id)
 	return ErrorMessages[id];
 }
 
+void* osecpu_thread(void* data)
+{
+	struct Osecpu* osecpu = data;
+	while (1) {
+		struct OsecpuCommand* cmd;
+		int nextinst_ret;
+		cmd = g_async_queue_try_pop(osecpu->osecpu_thread_queue);
+		if (cmd) {
+			switch (cmd->type) {
+				case INITIALIZE:
+					initialize_osecpu(osecpu);
+					break;
+				case NEXT:
+					if (osecpu->status == OSECPU_STATUS_PAUSED) {
+						nextinst_ret = do_next_instruction(osecpu);
+						if (nextinst_ret != 1) {
+							pthread_exit((void*)nextinst_ret);
+						}
+					} else {
+						// error
+					}
+					break;
+				case CONTINUE:
+					if (osecpu->status == OSECPU_STATUS_PAUSED) {
+						osecpu->status = OSECPU_STATUS_RUNNING;
+					} else {
+						// error
+					}
+					break;
+				case RESTART:
+					initialize_osecpu(osecpu);
+					osecpu->status = OSECPU_STATUS_RUNNING;
+					break;
+				case PAUSE_REQUEST:
+					if (osecpu->status == OSECPU_STATUS_RUNNING) {
+						osecpu->status = OSECPU_STATUS_PAUSED;
+					} else {
+						// error
+					}
+					break;
+			}
+			free(cmd);
+		}
+
+		if (osecpu->status == OSECPU_STATUS_RUNNING) {
+			nextinst_ret = do_next_instruction(osecpu);
+			if (nextinst_ret != 1) {
+				pthread_exit((void*)nextinst_ret);
+			}
+		}
+	}
+	osecpu->status = OSECPU_STATUS_EXIT;
+	return NULL;
+}
+
 struct Osecpu* init_osecpu()
 {
 	struct Osecpu* osecpu;
 	osecpu = (struct Osecpu*)malloc(sizeof(struct Osecpu));
 	if (!osecpu) return NULL;
-	osecpu->is_initialized = 0;
+	osecpu->osecpu_thread_queue = g_async_queue_new();
+	pthread_create(&osecpu->osecpu_thread, NULL, osecpu_thread, osecpu);
 	return osecpu;
 }
 
@@ -68,6 +124,7 @@ void free_osecpu(struct Osecpu* osecpu)
 		free(osecpu->labels[i].data);
 	}
 	free(osecpu->labels);
+	g_async_queue_unref(osecpu->osecpu_thread_queue);
 	free(osecpu);
 }
 
@@ -401,6 +458,15 @@ int load_b32_from_memory(struct Osecpu* osecpu, const uint8_t* code, long len)
 	return 0;
 }
 
+int wait_osecpu_exit(struct Osecpu* osecpu)
+{
+	int thread_ret;
+	pthread_join(osecpu->osecpu_thread, (void**)&thread_ret);
+	osecpu->osecpu_thread = NULL;
+	printf("%d\n", thread_ret);
+	return thread_ret;
+}
+
 void coredump(struct Osecpu* osecpu)
 {
 	int i, j;
@@ -633,7 +699,8 @@ void initialize_osecpu(struct Osecpu* osecpu)
 	if (osecpu->window) window_free(osecpu->window);
 
 	memset(osecpu, 0, sizeof(struct Osecpu));
-	osecpu->is_initialized = 1;
+	osecpu->osecpu_thread = copy_osecpu.osecpu_thread;
+	osecpu->osecpu_thread_queue = copy_osecpu.osecpu_thread_queue;
 	osecpu->orig_code = copy_osecpu.orig_code;
 	osecpu->orig_codelen = copy_osecpu.orig_codelen;
 	osecpu->code = copy_osecpu.code;
@@ -657,6 +724,8 @@ void initialize_osecpu(struct Osecpu* osecpu)
 			if (j >= 4) break;
 		}
 	}
+
+	osecpu->status = OSECPU_STATUS_PAUSED;
 }
 
 int do_next_instruction(struct Osecpu* osecpu)
@@ -665,7 +734,9 @@ int do_next_instruction(struct Osecpu* osecpu)
 	int setjmp_ret;
 
 	if (osecpu->error) return 0;
-	if (!osecpu->is_initialized) return 0;
+	if (osecpu->status != OSECPU_STATUS_PAUSED &&
+	    osecpu->status != OSECPU_STATUS_RUNNING)
+		return 0;
 
 	setjmp_ret = setjmp(osecpu->abort_to);
 	if (setjmp_ret == 0) {
@@ -685,17 +756,17 @@ int do_next_instruction(struct Osecpu* osecpu)
 	return 1;
 }
 
-int restart_osecpu(struct Osecpu* osecpu)
+void restart_osecpu(struct Osecpu* osecpu)
 {
-	int nextinst_ret;
-	initialize_osecpu(osecpu);
-	return continue_osecpu(osecpu);
+	struct OsecpuCommand* cmd = malloc(sizeof(struct OsecpuCommand));
+	cmd->type = RESTART;
+	g_async_queue_push(osecpu->osecpu_thread_queue, cmd);
 }
 
-int continue_osecpu(struct Osecpu* osecpu)
+void continue_osecpu(struct Osecpu* osecpu)
 {
-	int nextinst_ret;
-	while ((nextinst_ret=do_next_instruction(osecpu)) == 1);
-	return nextinst_ret;
+	struct OsecpuCommand* cmd = malloc(sizeof(struct OsecpuCommand));
+	cmd->type = CONTINUE;
+	g_async_queue_push(osecpu->osecpu_thread_queue, cmd);
 }
 
