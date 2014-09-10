@@ -49,8 +49,6 @@ public:
 		treeview.append_column("Name", name);
 		treeview.append_column("Value", value);
 		treeview.append_column("Type", type);
-
-		Reload();
 	}
 
 	int Reload()
@@ -139,8 +137,6 @@ public:
 		treeview.append_column("#", number);
 		treeview.append_column("Pos", codepos);
 		treeview.append_column("Type / Length", type);
-
-		Reload();
 	}
 
 	int Reload()
@@ -196,8 +192,6 @@ public:
 		treeview.set_model(liststore);
 		treeview.append_column("Instruction #", inst_number);
 		treeview.append_column("ASKA", inst_string);
-
-		Reload();
 	}
 
 	int Reload()
@@ -254,6 +248,14 @@ public:
 		vbox.pack_start(hbox);
 		add(vbox);
 		show_all_children();
+
+		Reload();
+	}
+
+	void Reload() {
+		widget_registers.Reload();
+		widget_labels.Reload();
+		widget_code.Reload();
 	}
 };
 
@@ -263,6 +265,7 @@ void* create_debugger_window_thread(void* data)
 	Gtk::Main gtk(NULL, NULL);
 	debugger->window = new DebuggerWindow(*debugger);
 	Gtk::Main::run(*(DebuggerWindow*)debugger->window);
+	debugger->window = NULL;
 }
 
 extern "C" OsecpuDebugger* debugger_init(struct Osecpu* osecpu)
@@ -272,11 +275,6 @@ extern "C" OsecpuDebugger* debugger_init(struct Osecpu* osecpu)
 	if (!debugger) return NULL;
 	memset(debugger, 0, sizeof(OsecpuDebugger));
 	debugger->osecpu = osecpu;
-
-	pthread_create(&debugger->windowThread, NULL, create_debugger_window_thread, debugger);
-
-	while (!debugger->window);
-	((Gtk::Window*)debugger->window)->show_all_children();
 
 	return debugger;
 }
@@ -289,6 +287,11 @@ extern "C" void debugger_free(OsecpuDebugger* debugger)
 extern "C" void debugger_open(OsecpuDebugger* debugger)
 {
 	char cmdbuf[1024];
+
+	if (!debugger->window) {
+		pthread_create(&debugger->windowThread, NULL, create_debugger_window_thread, debugger);
+		while (!debugger->window);
+	}
 
 	while (1) {
 		printf("debug> ");

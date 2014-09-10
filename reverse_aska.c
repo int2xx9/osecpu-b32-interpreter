@@ -120,6 +120,7 @@ int reverse_aska_prepare_code(ReverseAska* raska)
 						case 0x02: skipcnt = 2; break;
 						case 0x03: skipcnt = 1; break;
 						case 0x34: skipcnt = 1; break;
+						case 0x1ff: skipcnt = 1; break;
 						default: goto error; break;
 					}
 				}
@@ -328,7 +329,11 @@ struct ReverseAskaInstruction* get_instruction_string(ReverseAska* raska, int nu
 		case REM:
 			{
 				int uimm = fetch_b32value(raska->code, &pos, raska->codelen);
-				snprintf(ret_inst->inst_str, 100, "REM%02X(...);", uimm);
+				if (uimm == 0x1ff) {
+					snprintf(ret_inst->inst_str, 100, "REM%02X(...); // breakpoint", uimm);
+				} else {
+					snprintf(ret_inst->inst_str, 100, "REM%02X(...);", uimm);
+				}
 			}
 			break;
 		default:

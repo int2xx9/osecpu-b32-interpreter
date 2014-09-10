@@ -634,6 +634,8 @@ void initialize_osecpu(struct Osecpu* osecpu)
 
 	memset(osecpu, 0, sizeof(struct Osecpu));
 	osecpu->is_initialized = 1;
+	osecpu->orig_code = copy_osecpu.orig_code;
+	osecpu->orig_codelen = copy_osecpu.orig_codelen;
 	osecpu->code = copy_osecpu.code;
 	osecpu->codelen = copy_osecpu.codelen;
 	osecpu->labels = copy_osecpu.labels;
