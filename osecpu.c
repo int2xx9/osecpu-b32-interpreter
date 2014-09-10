@@ -460,10 +460,9 @@ int load_b32_from_memory(struct Osecpu* osecpu, const uint8_t* code, long len)
 
 int wait_osecpu_exit(struct Osecpu* osecpu)
 {
-	int thread_ret;
+	long thread_ret;
 	pthread_join(osecpu->osecpu_thread, (void**)&thread_ret);
 	osecpu->osecpu_thread = NULL;
-	printf("%d\n", thread_ret);
 	return thread_ret;
 }
 
