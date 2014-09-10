@@ -1,12 +1,12 @@
-CC=gcc
-CFLAGS=
-CXX=g++
-CxXFLAGS=
-MAKE=make
-TARGET=osecpu
-SOURCE=main.c osecpu.c api.c window.c reverse_aska.c
-SOURCE_CXX=debugger.cpp
-RM=rm -f
+CC:=gcc
+CFLAGS:=$(CFLAGS)
+CXX:=g++
+CxXFLAGS:=$(CFLAGS)
+MAKE:=make
+TARGET:=osecpu
+SOURCE:=main.c osecpu.c api.c window.c reverse_aska.c
+SOURCE_CXX:=debugger.cpp
+RM:=rm -f
 
 .PHONY: default all test clean
 default:
