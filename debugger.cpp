@@ -115,6 +115,7 @@ public:
 		if (!raska) return 0;
 
 		for (i = 0; i < raska->idxcnt; i++) {
+			// FIXME: inst, inst->inst_str are leaked memory
 			struct ReverseAskaInstruction* inst;
 			inst = get_instruction_string(raska, i);
 			row = *liststore->append();
