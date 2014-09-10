@@ -4,7 +4,7 @@ CXX=g++
 CxXFLAGS=
 MAKE=make
 TARGET=osecpu
-SOURCE=main.c osecpu.c api.c window.c
+SOURCE=main.c osecpu.c api.c window.c reverse_aska.c
 SOURCE_CXX=debugger.cpp
 RM=rm -f
 
