@@ -69,11 +69,13 @@ int main(int argc, char** argv)
 		debugger_open(debugger);
 	}
 	restart_osecpu(osecpu);
-	osecpu_ret = wait_osecpu_exit(osecpu);
-	if (osecpu_ret == 2) {
-		printf("Breakpoint.\n");
-		debugger_open(debugger);
-	}
+	do {
+		osecpu_ret = wait_osecpu_exit(osecpu);
+		if (osecpu_ret == 2) {
+			printf("Breakpoint.\n");
+			debugger_open(debugger);
+		}
+	} while (osecpu_ret != 2);
 	if (osecpu->error) {
 		fprintf(stderr, "Error: %s\n", get_error_text(osecpu->error));
 	}

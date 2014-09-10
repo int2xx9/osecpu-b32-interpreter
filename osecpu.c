@@ -62,8 +62,15 @@ void* osecpu_thread(void* data)
 				case NEXT:
 					if (osecpu->status == OSECPU_STATUS_PAUSED) {
 						nextinst_ret = do_next_instruction(osecpu);
-						if (nextinst_ret != 1) {
+						if (nextinst_ret == 2) {
+							printf("d\n");
+							osecpu->status = OSECPU_STATUS_BREAK;
+						} else if (nextinst_ret != 1) {
 							pthread_exit((void*)nextinst_ret);
+						}
+						printf("%d %d\n", osecpu->pregisters[0x3f].p.code, osecpu->codelen);
+						if (osecpu->pregisters[0x3f].p.code >= osecpu->codelen) {
+							osecpu->status = OSECPU_STATUS_EXIT;
 						}
 					} else {
 						// error
@@ -71,8 +78,10 @@ void* osecpu_thread(void* data)
 					break;
 				case CONTINUE:
 					if (osecpu->status == OSECPU_STATUS_PAUSED) {
+						printf("a\n");
 						osecpu->status = OSECPU_STATUS_RUNNING;
 					} else {
+						printf("b\n");
 						// error
 					}
 					break;
@@ -93,12 +102,16 @@ void* osecpu_thread(void* data)
 
 		if (osecpu->status == OSECPU_STATUS_RUNNING) {
 			nextinst_ret = do_next_instruction(osecpu);
-			if (nextinst_ret != 1) {
+			if (nextinst_ret == 2) {
+				osecpu->status = OSECPU_STATUS_BREAK;
+			} else 	if (nextinst_ret != 1) {
 				pthread_exit((void*)nextinst_ret);
+			}
+			if (osecpu->pregisters[0x3f].p.code >= osecpu->codelen) {
+				osecpu->status = OSECPU_STATUS_EXIT;
 			}
 		}
 	}
-	osecpu->status = OSECPU_STATUS_EXIT;
 	return NULL;
 }
 
@@ -460,9 +473,18 @@ int load_b32_from_memory(struct Osecpu* osecpu, const uint8_t* code, long len)
 
 int wait_osecpu_exit(struct Osecpu* osecpu)
 {
+	struct timespec ts = {0};
 	long thread_ret;
-	pthread_join(osecpu->osecpu_thread, (void**)&thread_ret);
-	osecpu->osecpu_thread = NULL;
+	ts.tv_sec = time(NULL) + 1;
+	while (pthread_timedjoin_np(osecpu->osecpu_thread, (void**)&thread_ret, &ts) != 0) {
+		if (osecpu->status == OSECPU_STATUS_BREAK) {
+			osecpu->status = OSECPU_STATUS_PAUSED;
+			return 2;
+		} else if (osecpu->status == OSECPU_STATUS_EXIT) {
+			return 1;
+		}
+	}
+	//osecpu->osecpu_thread = NULL;
 	return thread_ret;
 }
 
