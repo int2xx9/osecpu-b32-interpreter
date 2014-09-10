@@ -58,7 +58,7 @@ public:
 		Gtk::TreeModel::Row row;
 		int i;
 
-		// TODO: 新しいレジスタの情報を入れる前に全部消さないといけない
+		liststore->clear();
 
 		for (i = 0; i < 0x40; i++) {
 			char regname_c[4];
@@ -174,7 +174,7 @@ public:
 		Gtk::TreeModel::Row row;
 		int i;
 
-		// TODO: 新しい逆コンパイルされたコードを入れる前に全部消さないといけない
+		liststore->clear();
 
 		raska = reverse_aska_init(debugger.osecpu->orig_code, debugger.osecpu->orig_codelen);
 		if (!raska) return 0;
