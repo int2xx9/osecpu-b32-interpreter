@@ -48,6 +48,7 @@ public:
 	{
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
+		scrwin.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 		pack_start(scrwin);
 
 		record.add(name);
@@ -136,6 +137,7 @@ public:
 	{
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
+		scrwin.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 		pack_start(scrwin);
 
 		record.add(number);
@@ -193,6 +195,7 @@ public:
 	{
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
+		scrwin.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
 		pack_start(scrwin);
 
 		record.add(inst_number);
