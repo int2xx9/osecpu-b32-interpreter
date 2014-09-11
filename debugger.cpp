@@ -188,11 +188,25 @@ class CodeWidget : public Gtk::VBox
 	Gtk::TreeModel::ColumnRecord record;
 	Glib::RefPtr<Gtk::ListStore> liststore;
 	const OsecpuDebugger& debugger;
+
+	void on_cell_data(Gtk::CellRenderer* cell, const Gtk::TreeModel::iterator& it)
+	{
+		Gtk::TreeModel::Path path = liststore->get_path(it);
+		Gtk::TreeModel::Row row = *it;
+		if (debugger.osecpu->status == OSECPU_STATUS_NOT_INITIAlIZED && row[inst_number] == 0) {
+			cell->property_cell_background_gdk() = Gdk::Color("#ffff99");
+		} else if (debugger.osecpu->status == OSECPU_STATUS_PAUSED && row[inst_number] == debugger.osecpu->pregisters[0x3f].p.code) {
+			cell->property_cell_background_gdk() = Gdk::Color("#ffff99");
+		} else {
+			cell->property_cell_background_gdk() = Gdk::Color("#ffffff");
+		}
+	}
 public:
 	CodeWidget(const OsecpuDebugger& debugger) :
 		label("Code", Gtk::ALIGN_START, Gtk::ALIGN_LEFT),
 		debugger(debugger)
 	{
+		Gtk::CellRenderer* render;
 		pack_start(label, Gtk::PACK_SHRINK);
 		scrwin.add(treeview);
 		scrwin.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
@@ -204,6 +218,11 @@ public:
 		treeview.set_model(liststore);
 		treeview.append_column("Instruction #", inst_number);
 		treeview.append_column("ASKA", inst_string);
+
+		render = treeview.get_column_cell_renderer(0);
+		treeview.get_column(0)->set_cell_data_func(*render, sigc::mem_fun(this, &CodeWidget::on_cell_data));
+		render = treeview.get_column_cell_renderer(1);
+		treeview.get_column(1)->set_cell_data_func(*render, sigc::mem_fun(this, &CodeWidget::on_cell_data));
 	}
 
 	int Reload()
