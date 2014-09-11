@@ -8,26 +8,47 @@ extern "C" {
 #include <string.h>
 #include <gtkmm.h>
 
+void debugger_cmd_checkpoint(OsecpuDebugger*);
+void debugger_cmd_replay(OsecpuDebugger*);
+
 class ControlWidget : public Gtk::HBox
 {
 	Gtk::Button button_continue_pause;
 	Gtk::Button button_step;
-	const OsecpuDebugger& debugger;
+	Gtk::Button button_checkpoint;
+	Gtk::Button button_replay;
+	OsecpuDebugger& debugger;
 public:
-	ControlWidget(const OsecpuDebugger& debugger) :
+	ControlWidget(OsecpuDebugger& debugger) :
 		button_continue_pause("Continue / Pause"),
 		button_step("Step"),
+		button_checkpoint("Checkpoint"),
+		button_replay("Replay"),
 		debugger(debugger)
 	{
 		pack_start(button_continue_pause, Gtk::PACK_SHRINK);
 		pack_start(button_step, Gtk::PACK_SHRINK);
+		pack_start(button_checkpoint, Gtk::PACK_SHRINK);
+		pack_start(button_replay, Gtk::PACK_SHRINK);
 
 		button_continue_pause.signal_clicked().connect(sigc::mem_fun(this, &ControlWidget::on_continue_pause_button_clicked));
 		button_step.signal_clicked().connect(sigc::mem_fun(this, &ControlWidget::on_step_button_clicked));
+		button_checkpoint.signal_clicked().connect(sigc::mem_fun(this, &ControlWidget::on_checkpoint_button_clicked));
+		button_replay.signal_clicked().connect(sigc::mem_fun(this, &ControlWidget::on_replay_button_clicked));
 	}
 
 	void on_continue_pause_button_clicked();
 	void on_step_button_clicked();
+
+	void on_checkpoint_button_clicked()
+	{
+		debugger_cmd_checkpoint(&debugger);
+	}
+
+	void on_replay_button_clicked()
+	{
+		debugger_cmd_replay(&debugger);
+	}
 };
 
 class RegistersWidget : public Gtk::VBox
@@ -274,9 +295,9 @@ class DebuggerWindow : public Gtk::Window
 	RegistersWidget widget_registers;
 	LabelsWidget widget_labels;
 	CodeWidget widget_code;
-	const OsecpuDebugger& debugger;
+	OsecpuDebugger& debugger;
 public:
-	DebuggerWindow(const OsecpuDebugger& debugger) :
+	DebuggerWindow(OsecpuDebugger& debugger) :
 		debugger(debugger),
 		widget_control(debugger),
 		widget_registers(debugger),
@@ -353,6 +374,51 @@ void* create_debugger_window_thread(void* data)
 	debugger->window = NULL;
 }
 
+void debugger_cmd_checkpoint(OsecpuDebugger* debugger)
+{
+	int i;
+	if (!debugger->checkpoint) {
+		debugger->checkpoint = (struct Osecpu*)malloc(sizeof(struct Osecpu));
+	}
+	memcpy(debugger->checkpoint, debugger->osecpu, sizeof(struct Osecpu));
+	if (debugger->osecpu->window) {
+		debugger->checkpoint_surface = window_copy_surface(NULL, debugger->osecpu->window->surface);
+	}
+	debugger->checkpoint_labels = (struct Label*)malloc(sizeof(struct Label) * debugger->osecpu->labelcnt);
+	for (i = 0; i < debugger->osecpu->labelcnt; i++) {
+		debugger->checkpoint_labels[i] = debugger->osecpu->labels[i];
+		if (debugger->checkpoint_labels[i].data) {
+			debugger->checkpoint_labels[i].data = (uint8_t*)malloc(debugger->checkpoint_labels[i].datalen);
+			memcpy(debugger->checkpoint_labels[i].data, debugger->osecpu->labels[i].data, debugger->checkpoint_labels[i].datalen);
+		}
+	}
+	debugger->checkpoint_labelcnt = debugger->osecpu->labelcnt;
+}
+
+void debugger_cmd_replay(OsecpuDebugger* debugger)
+{
+	int i;
+	struct OsecpuCommand* cmd = (struct OsecpuCommand*)malloc(sizeof(struct OsecpuCommand));
+	OsecpuWindow* window;
+	struct Label* labels;
+	cmd->type = OsecpuCommand::PAUSE_REQUEST;
+	g_async_queue_push(debugger->osecpu->osecpu_thread_queue, cmd);
+	window = debugger->osecpu->window;
+	labels = debugger->osecpu->labels;
+	memcpy(debugger->osecpu, debugger->checkpoint, sizeof(struct Osecpu));
+	debugger->osecpu->window = window;
+	debugger->osecpu->labels = labels;
+	if (debugger->checkpoint_surface) {
+		window_copy_surface(window->surface, debugger->checkpoint_surface);
+	}
+	for (i = 0; i < debugger->checkpoint_labelcnt; i++) {
+		if (debugger->osecpu->labels[i].data) {
+			memcpy(debugger->osecpu->labels[i].data, debugger->checkpoint_labels[i].data, debugger->osecpu->labels[i].datalen);
+		}
+	}
+	((DebuggerWindow*)debugger->window)->Reload();
+}
+
 void debugger_cmd_switch(OsecpuDebugger* debugger, const char* filename)
 {
 	if (load_b32_from_file(debugger->osecpu, filename, 1) != 0) {
@@ -416,39 +482,9 @@ extern "C" void debugger_open(OsecpuDebugger* debugger)
 		} else if (strcmp(cmdbuf, "show_status") == 0) {
 			coredump(debugger->osecpu);
 		} else if (strcmp(cmdbuf, "checkpoint") == 0) {
-			int i;
-			if (!debugger->checkpoint) {
-				debugger->checkpoint = (struct Osecpu*)malloc(sizeof(struct Osecpu));
-			}
-			memcpy(debugger->checkpoint, debugger->osecpu, sizeof(struct Osecpu));
-			debugger->checkpoint_surface = window_copy_surface(NULL, debugger->osecpu->window->surface);
-			debugger->checkpoint_labels = (struct Label*)malloc(sizeof(struct Label) * debugger->osecpu->labelcnt);
-			for (i = 0; i < debugger->osecpu->labelcnt; i++) {
-				debugger->checkpoint_labels[i] = debugger->osecpu->labels[i];
-				if (debugger->checkpoint_labels[i].data) {
-					debugger->checkpoint_labels[i].data = (uint8_t*)malloc(debugger->checkpoint_labels[i].datalen);
-					memcpy(debugger->checkpoint_labels[i].data, debugger->osecpu->labels[i].data, debugger->checkpoint_labels[i].datalen);
-				}
-			}
-			debugger->checkpoint_labelcnt = debugger->osecpu->labelcnt;
+			debugger_cmd_checkpoint(debugger);
 		} else if (strcmp(cmdbuf, "replay") == 0) {
-			int i;
-			struct OsecpuCommand* cmd = (struct OsecpuCommand*)malloc(sizeof(struct OsecpuCommand));
-			OsecpuWindow* window;
-			struct Label* labels;
-			cmd->type = OsecpuCommand::PAUSE_REQUEST;
-			g_async_queue_push(debugger->osecpu->osecpu_thread_queue, cmd);
-			window = debugger->osecpu->window;
-			labels = debugger->osecpu->labels;
-			memcpy(debugger->osecpu, debugger->checkpoint, sizeof(struct Osecpu));
-			debugger->osecpu->window = window;
-			debugger->osecpu->labels = labels;
-			window_copy_surface(window->surface, debugger->checkpoint_surface);
-			for (i = 0; i < debugger->checkpoint_labelcnt; i++) {
-				if (debugger->osecpu->labels[i].data) {
-					memcpy(debugger->osecpu->labels[i].data, debugger->checkpoint_labels[i].data, debugger->osecpu->labels[i].datalen);
-				}
-			}
+			debugger_cmd_replay(debugger);
 		} else if (strcmp(cmdbuf, "switch") == 0) {
 			printf("filename: ");
 			fgets(cmdbuf, 1024, stdin);
