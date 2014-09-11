@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	if (load_b32_from_file(osecpu, cmdline.filename) == -1) {
+	if (load_b32_from_file(osecpu, cmdline.filename, 0) == -1) {
 		printf("load_b32() error\n");
 		if (osecpu->code) free(osecpu->code);
 		free(osecpu);

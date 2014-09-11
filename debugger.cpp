@@ -353,6 +353,16 @@ void* create_debugger_window_thread(void* data)
 	debugger->window = NULL;
 }
 
+void debugger_cmd_switch(OsecpuDebugger* debugger, const char* filename)
+{
+	if (load_b32_from_file(debugger->osecpu, filename, 1) != 0) {
+		printf("load_b32_from_file() error.\n");
+	} else {
+		((DebuggerWindow*)debugger->window)->Reload();
+		printf("switched\n");
+	}
+}
+
 extern "C" OsecpuDebugger* debugger_init(struct Osecpu* osecpu)
 {
 	OsecpuDebugger* debugger;
@@ -439,8 +449,13 @@ extern "C" void debugger_open(OsecpuDebugger* debugger)
 					memcpy(debugger->osecpu->labels[i].data, debugger->checkpoint_labels[i].data, debugger->osecpu->labels[i].datalen);
 				}
 			}
+		} else if (strcmp(cmdbuf, "switch") == 0) {
+			printf("filename: ");
+			fgets(cmdbuf, 1024, stdin);
+			cmdbuf[strlen(cmdbuf)-1] = 0;
+			debugger_cmd_switch(debugger, cmdbuf);
 		} else {
-			printf("command: continue, next, coredump, checkpoint, replay\n");
+			printf("command: continue, next, coredump, checkpoint, replay, switch\n");
 		}
 	}
 }

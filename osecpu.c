@@ -380,41 +380,43 @@ int prepare_labels(struct Osecpu* osecpu, const unsigned char* code)
 	return 1;
 }
 
-int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len)
+int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len, int no_prepare_labels)
 {
 	int error;
 	const int instcnt = count_instructions(code, len, &error);
 	int i;
 	int codepos;
+	struct Instruction* inst;
 
 	if (error != 0) {
 		osecpu->error = error;
 		return 0;
 	}
 
-	osecpu->code = (struct Instruction*)malloc(sizeof(struct Instruction) * instcnt);
-	if (!osecpu->code) return 0;
+	inst = (struct Instruction*)malloc(sizeof(struct Instruction) * instcnt);
+	if (!inst) return 0;
 
 	for (codepos = i = 0; i < instcnt; i++) {
 		// error always must be 0
 		// (count_instructions() already validated arguments)
-		codepos += fetch_b32instruction(code, codepos, len, &osecpu->code[i], &error);
+		codepos += fetch_b32instruction(code, codepos, len, &inst[i], &error);
 	}
 
+	osecpu->code = inst;
 	osecpu->codelen = instcnt;
 
-	if (!prepare_labels(osecpu, code)) return 0;
+	if (!no_prepare_labels && !prepare_labels(osecpu, code)) return 0;
 
 	return 1;
 }
 
-int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
+int load_b32_from_file(struct Osecpu* osecpu, const char* filename, int overwrite_code)
 {
 	FILE* fp;
 	long len;
 	uint8_t* code;
 
-	if (osecpu->code) return -1;
+	if (!overwrite_code && osecpu->code) return -1;
 
 	fp = fopen(filename, "rb");
 	if (!fp) return -1;
@@ -449,21 +451,18 @@ int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 		return -1;
 	}
 
+	if (load_b32_from_memory(osecpu, code+8, len-8, overwrite_code) != 0) return -1;
+
 	osecpu->orig_code = code;
 	osecpu->orig_codelen = len;
-
-	if (load_b32_from_memory(osecpu, code+8, len-8) != 0) return -1;
 
 	return 0;
 }
 
-int load_b32_from_memory(struct Osecpu* osecpu, const uint8_t* code, long len)
+int load_b32_from_memory(struct Osecpu* osecpu, const uint8_t* code, long len, int overwrite_code)
 {
-	if (osecpu->code) return -1;
-
-	prepare_code(osecpu, code, len);
-	if (!osecpu->code) return -1;
-
+	if (!overwrite_code && osecpu->code) return -1;
+	if (!prepare_code(osecpu, code, len, overwrite_code)) return -1;
 	return 0;
 }
 
