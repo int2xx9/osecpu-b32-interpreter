@@ -21,6 +21,7 @@ struct OsecpuWindow* window_create();
 void window_free(struct OsecpuWindow*);
 int window_wait_quit(struct OsecpuWindow*);
 void window_resize(struct OsecpuWindow*, int, int);
+cairo_surface_t* window_copy_surface(cairo_surface_t*, cairo_surface_t*);
 void window_draw_point(struct OsecpuWindow*, int, int, int);
 void window_fill_rect(struct OsecpuWindow*, int, int, int, int, int);
 void window_fill_oval(struct OsecpuWindow*, int, int, int, int, int);

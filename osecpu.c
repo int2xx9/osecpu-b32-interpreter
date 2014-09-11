@@ -47,12 +47,77 @@ const char* get_error_text(int id)
 	return ErrorMessages[id];
 }
 
+void* osecpu_thread(void* data)
+{
+	struct Osecpu* osecpu = data;
+	while (1) {
+		struct OsecpuCommand* cmd;
+		int nextinst_ret;
+		cmd = g_async_queue_try_pop(osecpu->osecpu_thread_queue);
+		if (cmd) {
+			switch (cmd->type) {
+				case INITIALIZE:
+					initialize_osecpu(osecpu);
+					break;
+				case NEXT:
+					if (osecpu->status == OSECPU_STATUS_PAUSED) {
+						nextinst_ret = do_next_instruction(osecpu);
+						if (nextinst_ret == 2) {
+							osecpu->status = OSECPU_STATUS_BREAK;
+						} else if (nextinst_ret != 1) {
+							pthread_exit((void*)nextinst_ret);
+						}
+						if (osecpu->pregisters[0x3f].p.code >= osecpu->codelen) {
+							osecpu->status = OSECPU_STATUS_EXIT;
+						}
+					} else {
+						// error
+					}
+					break;
+				case CONTINUE:
+					if (osecpu->status == OSECPU_STATUS_PAUSED) {
+						osecpu->status = OSECPU_STATUS_RUNNING;
+					} else {
+						// error
+					}
+					break;
+				case RESTART:
+					initialize_osecpu(osecpu);
+					osecpu->status = OSECPU_STATUS_RUNNING;
+					break;
+				case PAUSE_REQUEST:
+					if (osecpu->status == OSECPU_STATUS_RUNNING) {
+						osecpu->status = OSECPU_STATUS_PAUSED;
+					} else {
+						// error
+					}
+					break;
+			}
+			free(cmd);
+		}
+
+		if (osecpu->status == OSECPU_STATUS_RUNNING) {
+			nextinst_ret = do_next_instruction(osecpu);
+			if (nextinst_ret == 2) {
+				osecpu->status = OSECPU_STATUS_BREAK;
+			} else 	if (nextinst_ret != 1) {
+				pthread_exit((void*)nextinst_ret);
+			}
+			if (osecpu->pregisters[0x3f].p.code >= osecpu->codelen) {
+				osecpu->status = OSECPU_STATUS_EXIT;
+			}
+		}
+	}
+	return NULL;
+}
+
 struct Osecpu* init_osecpu()
 {
 	struct Osecpu* osecpu;
 	osecpu = (struct Osecpu*)malloc(sizeof(struct Osecpu));
 	if (!osecpu) return NULL;
-	osecpu->is_initialized = 0;
+	osecpu->osecpu_thread_queue = g_async_queue_new();
+	pthread_create(&osecpu->osecpu_thread, NULL, osecpu_thread, osecpu);
 	return osecpu;
 }
 
@@ -60,13 +125,15 @@ void free_osecpu(struct Osecpu* osecpu)
 {
 	int i;
 	window_wait_quit(osecpu->window);
-	if (osecpu->code) free(osecpu->code);
-	if (osecpu->window) window_free(osecpu->window);
+	free(osecpu->orig_code);
+	free(osecpu->code);
+	window_free(osecpu->window);
 	for (i = 0; i < osecpu->labelcnt; i++) {
 		// Label.data must be NULL if it has no data
 		free(osecpu->labels[i].data);
 	}
-	if (osecpu->labels) free(osecpu->labels);
+	free(osecpu->labels);
+	g_async_queue_unref(osecpu->osecpu_thread_queue);
 	free(osecpu);
 }
 
@@ -225,7 +292,7 @@ int fetch_b32instruction(const uint8_t* code, const int base, const int len, str
 					break;
 				case 0x1ff:
 					B32FETCH_HELPER(rem.rem1ff.arg1, CHECK_EXPR, inst->arg.rem.rem1ff.arg1 != 0);
-					inst->arg.rem.rem1ff.enabled = 1;
+					inst->breakpoint = 1;
 					break;
 				default:
 					*error = ERROR_INVALID_INSTRUCTION;
@@ -313,41 +380,43 @@ int prepare_labels(struct Osecpu* osecpu, const unsigned char* code)
 	return 1;
 }
 
-int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len)
+int prepare_code(struct Osecpu* osecpu, const uint8_t* code, const int len, int no_prepare_labels)
 {
 	int error;
 	const int instcnt = count_instructions(code, len, &error);
 	int i;
 	int codepos;
+	struct Instruction* inst;
 
 	if (error != 0) {
 		osecpu->error = error;
 		return 0;
 	}
 
-	osecpu->code = (struct Instruction*)malloc(sizeof(struct Instruction) * instcnt);
-	if (!osecpu->code) return 0;
+	inst = (struct Instruction*)malloc(sizeof(struct Instruction) * instcnt);
+	if (!inst) return 0;
 
 	for (codepos = i = 0; i < instcnt; i++) {
 		// error always must be 0
 		// (count_instructions() already validated arguments)
-		codepos += fetch_b32instruction(code, codepos, len, &osecpu->code[i], &error);
+		codepos += fetch_b32instruction(code, codepos, len, &inst[i], &error);
 	}
 
+	osecpu->code = inst;
 	osecpu->codelen = instcnt;
 
-	if (!prepare_labels(osecpu, code)) return 0;
+	if (!no_prepare_labels && !prepare_labels(osecpu, code)) return 0;
 
 	return 1;
 }
 
-int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
+int load_b32_from_file(struct Osecpu* osecpu, const char* filename, int overwrite_code)
 {
 	FILE* fp;
 	long len;
 	uint8_t* code;
 
-	if (osecpu->code) return -1;
+	if (!overwrite_code && osecpu->code) return -1;
 
 	fp = fopen(filename, "rb");
 	if (!fp) return -1;
@@ -382,20 +451,36 @@ int load_b32_from_file(struct Osecpu* osecpu, const char* filename)
 		return -1;
 	}
 
-	if (load_b32_from_memory(osecpu, code+8, len-8) != 0) return -1;
+	if (load_b32_from_memory(osecpu, code+8, len-8, overwrite_code) != 0) return -1;
 
-	free(code);
+	osecpu->orig_code = code;
+	osecpu->orig_codelen = len;
+
 	return 0;
 }
 
-int load_b32_from_memory(struct Osecpu* osecpu, const uint8_t* code, long len)
+int load_b32_from_memory(struct Osecpu* osecpu, const uint8_t* code, long len, int overwrite_code)
 {
-	if (osecpu->code) return -1;
-
-	prepare_code(osecpu, code, len);
-	if (!osecpu->code) return -1;
-
+	if (!overwrite_code && osecpu->code) return -1;
+	if (!prepare_code(osecpu, code, len, overwrite_code)) return -1;
 	return 0;
+}
+
+int wait_osecpu_exit(struct Osecpu* osecpu)
+{
+	struct timespec ts = {0};
+	long thread_ret;
+	ts.tv_sec = time(NULL) + 1;
+	while (pthread_timedjoin_np(osecpu->osecpu_thread, (void**)&thread_ret, &ts) != 0) {
+		if (osecpu->status == OSECPU_STATUS_BREAK) {
+			osecpu->status = OSECPU_STATUS_PAUSED;
+			return 2;
+		} else if (osecpu->status == OSECPU_STATUS_EXIT) {
+			return 1;
+		}
+	}
+	//osecpu->osecpu_thread = NULL;
+	return thread_ret;
 }
 
 void coredump(struct Osecpu* osecpu)
@@ -453,7 +538,7 @@ void coredump(struct Osecpu* osecpu)
 
 	printf("\n");
 
-	printf("vm exit code: %d (%s)\n", osecpu->error, get_error_text(osecpu->error));
+	printf("vm error code: %d (%s)\n", osecpu->error, get_error_text(osecpu->error));
 }
 
 void do_operate_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
@@ -602,7 +687,7 @@ void do_instruction(struct Osecpu* osecpu, const struct Instruction* inst)
 			do_compare_instruction(osecpu, inst);
 			break;
 		case REM:
-			if (inst->arg.rem.rem1ff.enabled) {
+			if (inst->breakpoint) {
 				abort_vm(osecpu, 0, 2);
 			}
 			break;
@@ -630,7 +715,10 @@ void initialize_osecpu(struct Osecpu* osecpu)
 	if (osecpu->window) window_free(osecpu->window);
 
 	memset(osecpu, 0, sizeof(struct Osecpu));
-	osecpu->is_initialized = 1;
+	osecpu->osecpu_thread = copy_osecpu.osecpu_thread;
+	osecpu->osecpu_thread_queue = copy_osecpu.osecpu_thread_queue;
+	osecpu->orig_code = copy_osecpu.orig_code;
+	osecpu->orig_codelen = copy_osecpu.orig_codelen;
 	osecpu->code = copy_osecpu.code;
 	osecpu->codelen = copy_osecpu.codelen;
 	osecpu->labels = copy_osecpu.labels;
@@ -652,6 +740,8 @@ void initialize_osecpu(struct Osecpu* osecpu)
 			if (j >= 4) break;
 		}
 	}
+
+	osecpu->status = OSECPU_STATUS_PAUSED;
 }
 
 int do_next_instruction(struct Osecpu* osecpu)
@@ -660,7 +750,9 @@ int do_next_instruction(struct Osecpu* osecpu)
 	int setjmp_ret;
 
 	if (osecpu->error) return 0;
-	if (!osecpu->is_initialized) return 0;
+	if (osecpu->status != OSECPU_STATUS_PAUSED &&
+	    osecpu->status != OSECPU_STATUS_RUNNING)
+		return 0;
 
 	setjmp_ret = setjmp(osecpu->abort_to);
 	if (setjmp_ret == 0) {
@@ -680,18 +772,17 @@ int do_next_instruction(struct Osecpu* osecpu)
 	return 1;
 }
 
-int restart_osecpu(struct Osecpu* osecpu)
+void restart_osecpu(struct Osecpu* osecpu)
 {
-	int nextinst_ret;
-	initialize_osecpu(osecpu);
-	while ((nextinst_ret=do_next_instruction(osecpu)) == 1);
-	return nextinst_ret;
+	struct OsecpuCommand* cmd = malloc(sizeof(struct OsecpuCommand));
+	cmd->type = RESTART;
+	g_async_queue_push(osecpu->osecpu_thread_queue, cmd);
 }
 
-int continue_osecpu(struct Osecpu* osecpu)
+void continue_osecpu(struct Osecpu* osecpu)
 {
-	int nextinst_ret;
-	while ((nextinst_ret=do_next_instruction(osecpu)) == 1);
-	return nextinst_ret;
+	struct OsecpuCommand* cmd = malloc(sizeof(struct OsecpuCommand));
+	cmd->type = CONTINUE;
+	g_async_queue_push(osecpu->osecpu_thread_queue, cmd);
 }
 

@@ -23,8 +23,6 @@ struct WindowQueue
 	} arg;
 };
 
-static int initialized = 0;
-
 void window_destroy(GtkWidget* _window, gpointer data)
 {
 	struct OsecpuWindow* window = data;
@@ -99,8 +97,7 @@ struct OsecpuWindow* window_create(int width, int height)
 	struct OsecpuWindow* window;
 	cairo_t* cr;
 
-	if (!initialized) {
-		initialized = 1;
+	if (!gtk_init_check(NULL, NULL)) {
 		gtk_init(NULL, NULL);
 	}
 	window = (struct OsecpuWindow*)malloc(sizeof(struct OsecpuWindow));
@@ -132,6 +129,7 @@ void window_free(struct OsecpuWindow* window)
 {
 	struct WindowQueue* qdata;
 	void* dummy;
+	if (!window) return;
 	qdata = (struct WindowQueue*)malloc(sizeof(struct WindowQueue));
 	if (!qdata) return;
 	qdata->type = QUEUE_DESTROY;
@@ -168,6 +166,22 @@ void window_resize(struct OsecpuWindow* window, int width, int height)
 	qdata->arg.resize.width = width;
 	qdata->arg.resize.height = height;
 	g_async_queue_push(window->queue, qdata);
+}
+
+cairo_surface_t* window_copy_surface(cairo_surface_t* to, cairo_surface_t* from)
+{
+	cairo_t* cr;
+	int width, height;
+	width = cairo_image_surface_get_width(from);
+	height = cairo_image_surface_get_height(from);
+	if (to == NULL) {
+		to = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+	}
+	cr = cairo_create(to);
+	cairo_set_source_surface(cr, from, 0, 0);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+	return to;
 }
 
 int window_get_pixel_color(struct OsecpuWindow* window, int x, int y)
