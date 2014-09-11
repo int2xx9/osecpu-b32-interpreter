@@ -36,7 +36,7 @@ class RegistersWidget : public Gtk::VBox
 	Gtk::ScrolledWindow scrwin;
 	Gtk::TreeView treeview;
 	Gtk::TreeModelColumn<Glib::ustring> name;
-	Gtk::TreeModelColumn<int> value;
+	Gtk::TreeModelColumn<Glib::ustring> value;
 	Gtk::TreeModelColumn<Glib::ustring> type;
 	Gtk::TreeModel::ColumnRecord record;
 	Glib::RefPtr<Gtk::ListStore> liststore;
@@ -70,22 +70,29 @@ public:
 
 		for (i = 0; i < 0x40; i++) {
 			char regname_c[4];
+			char value_c[32];
 			Glib::ustring regname;
+			Glib::ustring value_str;
 			Glib::ustring type_name("-");
 
 			snprintf(regname_c, 4, "R%02X", i);
 			regname = regname_c;
 
+			snprintf(value_c, 32, "%08x (%d)", debugger.osecpu->registers[i], debugger.osecpu->registers[i]);
+			value_str = value_c;
+
 			row = *liststore->append();
 			row[name] = regname;
-			row[value] = debugger.osecpu->registers[i];
+			row[value] = value_str;
 			row[type] = type_name;
 		}
 
 		for (i = 0; i < 0x40; i++) {
 			char regname_c[4];
+			char value_c[32];
 			char type_name_c[16];
 			Glib::ustring regname;
+			Glib::ustring value_str;
 			Glib::ustring type_name;
 
 			snprintf(regname_c, 4, "P%02X", i);
@@ -94,24 +101,32 @@ public:
 			snprintf(type_name_c, 16, "%d", debugger.osecpu->pregisters[i].type);
 			type_name = type_name_c;
 
+			snprintf(value_c, 32, "%08x (%d)", debugger.osecpu->pregisters[i].p.code, debugger.osecpu->pregisters[i].p.code);
+			value_str = value_c;
+
 			row = *liststore->append();
 			row[name] = regname;
-			row[value] = debugger.osecpu->pregisters[i].p.code;
+			row[value] = value_str;
 			row[type] = type_name;
 		}
 
 		for (i = 0; i < 4; i++) {
 			char regname_c[4];
+			char value_c[32];
 			char type_name_c[16];
 			Glib::ustring regname;
+			Glib::ustring value_str;
 			Glib::ustring type_name("-");
 
 			snprintf(regname_c, 4, "D%02X", i);
 			regname = regname_c;
 
+			snprintf(value_c, 32, "%08x (%d)", debugger.osecpu->dregisters[i], debugger.osecpu->dregisters[i]);
+			value_str = value_c;
+
 			row = *liststore->append();
 			row[name] = regname;
-			row[value] = debugger.osecpu->dregisters[i];
+			row[value] = value_str;
 			row[type] = type_name;
 		}
 
