@@ -413,7 +413,7 @@ extern "C" void debugger_open(OsecpuDebugger* debugger)
 			if (debugger->osecpu->pregisters[0x3f].p.code >= debugger->osecpu->codelen) {
 				return;
 			}
-		} else if (strcmp(cmdbuf, "coredump") == 0) {
+		} else if (strcmp(cmdbuf, "show_status") == 0) {
 			coredump(debugger->osecpu);
 		} else if (strcmp(cmdbuf, "checkpoint") == 0) {
 			int i;
@@ -455,7 +455,7 @@ extern "C" void debugger_open(OsecpuDebugger* debugger)
 			cmdbuf[strlen(cmdbuf)-1] = 0;
 			debugger_cmd_switch(debugger, cmdbuf);
 		} else {
-			printf("command: continue, next, coredump, checkpoint, replay, switch\n");
+			printf("command: continue, next, show_status, checkpoint, replay, switch\n");
 		}
 	}
 }
